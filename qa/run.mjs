@@ -223,18 +223,20 @@ try {
   await p.context().close();
 
   // カレンダー・あとから：3日後を「今日」にすると、遊ばなかった日が「あとから」で遊べる
-  const q = await newPage(390, `?qa=1&day=${addDay(TODAY, 3)}`);
-  await q.evaluate((k) => localStorage.setItem("haku-v1", JSON.stringify({ v: 1, tut: true, days: { [k]: { s: [3, 3, 3, 3, 3], ids: [0, 1, 2, 3, 4] } } })), TODAY);
+  // 日付は固定（実行日だと月末に「3日後」が翌月のカレンダーになり、記録の日が見えなくなる）
+  const CAL0 = "2026-11-10";
+  const q = await newPage(390, `?qa=1&day=${addDay(CAL0, 3)}`);
+  await q.evaluate((k) => localStorage.setItem("haku-v1", JSON.stringify({ v: 1, tut: true, days: { [k]: { s: [3, 3, 3, 3, 3], ids: [0, 1, 2, 3, 4] } } })), CAL0);
   await q.reload(); await q.waitForTimeout(150);
   await q.click("#go-cal");
-  const lateKey = addDay(TODAY, 1);
+  const lateKey = addDay(CAL0, 1);
   check("カレンダー：遊んだ日に★・あとから遊べる日はボタン", (await q.textContent(".cal")).includes("★15") && await q.locator(`[data-late="${lateKey}"]`).count() === 1);
   await auto(q); await q.click(`[data-late="${lateKey}"]`);
   for (let i = 0; i < 5; i++) { await playOne(q); await q.click("#next"); }
   await q.waitForSelector(".calib");
   const m6 = await mem(q);
   check("あとから：記録は late に入り、今日の記録には数えない・Ko-fi を出さない", m6.late[lateKey] && !m6.days[lateKey] && await q.locator("a[href*='ko-fi']").count() === 0);
-  check("前の記録（知らない入れ物を含む）を消さない", m6.days[TODAY] && m6.days[TODAY].s.length === 5);
+  check("前の記録（知らない入れ物を含む）を消さない", m6.days[CAL0] && m6.days[CAL0].s.length === 5);
   await q.context().close();
 
   // 本当に押す：音の時計で、押した回数を数えて判定する（時間は待つ）
