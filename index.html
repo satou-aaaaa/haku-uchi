@@ -479,8 +479,11 @@ const sym = (n) => ["✕", "△", "○", "◎"][n];
 const footer = () => `<footer><a href="#" id="f-how">遊び方</a><a href="#" id="f-about">このゲームについて</a><a href="#" data-a11y-open>見やすさ</a><a href="#" data-hk>引き継ぎ</a><a href="${FEEDBACK}" target="_blank" rel="noopener">💬 感想を送る</a></footer>`;
 function bind(map) { for (const [id, fn] of Object.entries(map)) { const el = $(id); if (el) el.onclick = (e) => { e.preventDefault(); fn(); }; } const h = $("f-how"); if (h) h.onclick = (e) => { e.preventDefault(); openHow(); }; const a = $("f-about"); if (a) a.onclick = (e) => { e.preventDefault(); about(); }; }
 function openHow() { $("fb2").href = FEEDBACK; const d = $("howto"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
-$("howto-ok").onclick = () => { const d = $("howto"); if (d.close) d.close(); else d.removeAttribute("open"); };
-$("howto").addEventListener("close", () => save((s) => { s.tut = true; }));
+// 「見た」はその場で残す（close の知らせは少し遅れて届く。Esc は cancel がその場で届く。shared-workflows routines/game-dev.md「遊び方」）
+const sawHow = () => { if (!load().tut) save((s) => { s.tut = true; }); };
+$("howto-ok").onclick = () => { sawHow(); const d = $("howto"); if (d.close) d.close(); else d.removeAttribute("open"); };
+$("howto").addEventListener("cancel", sawHow);
+$("howto").addEventListener("close", sawHow);
 const hdr = (title, sub = "") => `<header><h1>${title}${sub ? `<small>${sub}</small>` : ""}</h1><button class="icon" id="back" aria-label="ホームへ戻る">ホーム</button></header>`;
 function show(html, map = {}) { PLAY = null; stopSched(); app.innerHTML = html; bind(Object.assign({ back: home }, map)); scrollTo(0, 0); const f = app.querySelector("h1,.title"); if (f) { f.setAttribute("tabindex", "-1"); } }
 

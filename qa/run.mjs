@@ -252,6 +252,21 @@ try {
   check("遊ぶ画面はスマホ幅（390px）で横にはみ出さない", await noOverflow(r));
   await r.context().close();
 
+  // 遊び方の「見た」：わかったを押したその場・Esc で閉じたその場で残る（閉じた直後に読み直してもまた出ない）
+  const hw = await newPage(390);
+  await hw.waitForSelector("#howto[open]"); await hw.click("#howto-ok");
+  check("遊び方：「わかった」を押したその場で「見た」が残る", (await mem(hw)).tut === true);
+  await hw.context().close();
+  let escOk = true;
+  for (let i = 0; i < 10 && escOk; i++) {   // 毎回まっさらな端末で：Esc で閉じて、すぐ開き直す
+    const e = await newPage(390);
+    await e.waitForSelector("#howto[open]"); await e.keyboard.press("Escape");
+    await e.reload(); await e.waitForTimeout(100);
+    if (await e.locator("#howto[open]").count()) escOk = false;
+    await e.context().close();
+  }
+  check("遊び方：Esc で閉じてすぐ読み直しても（10回）また出ない", escOk);
+
   // 幅320px
   const n = await newPage(320);
   await closeHow(n);
