@@ -44,7 +44,7 @@ const html = readFileSync(path.join(root, "index.html"), "utf8");
   }
   check("今日の5語（3年分）：日付で決まり、5語ちがい、拍の数が 3→4→5→5〜6→6〜7", badD.length === 0, badD.slice(0, 4).join(" / "));
   check("今日の5語が前の日と同じにならない・上級の一句は毎日ある", same === 0 && badH === 0, `同じ ${same}・一句なし ${badH}`);
-  check("今日の5語の決め方が変わっていない（2026-11-07 の5語）", JSON.stringify(H.daily("2026-11-07")) === JSON.stringify(H.daily("2026-11-07")) && H.daily("2026-11-07").every((id) => id < H.WORDS.length));
+  check("今日の5語の決め方が変わっていない（2026-11-07 の5語）", JSON.stringify(H.daily("2026-11-07")) === "[164,235,437,488,431]" && H.hard("2026-11-07") === 3, JSON.stringify(H.daily("2026-11-07")) + " " + H.hard("2026-11-07"));
   // とことん：何百回並べて、1つの並びに全部のことばが1回ずつ、前の並びの最後から始めない
   let badE = 0, prevHit = 0;
   for (let i = 0; i < 400; i++) { const prev = i % H.WORDS.length, a = H.endless(Math.random, prev); if (a.length !== H.WORDS.length || new Set(a).size !== a.length) badE++; if (a[0] === prev) prevHit++; }
@@ -136,7 +136,11 @@ try {
   await p.reload(); await p.waitForTimeout(150);
   check("途中で閉じても続きから（3語目）", (await p.textContent("#go-d")).includes("続きから（3語目）"));
   await auto(p); await p.click("#go-d");
-  for (let i = 2; i < 5; i++) { await playOne(p); await p.click("#next"); }
+  for (let i = 2; i < 5; i++) {
+    await playOne(p);
+    if (i === 4) check("最後のことばの判定で記録を確定する（「結果を見る」を押さずに閉じても残る）", !!(await mem(p)).days[TODAY] && !(await mem(p)).runs.d);
+    await p.click("#next");
+  }
   await p.waitForSelector(".calib");
   const m1 = await mem(p);
   check("結果：★15/15・5語の区切り・記録に今日が残る", (await p.textContent(".calib")).includes("15 / 15") && await p.locator(".rlist > div").count() === 5 && m1.days[TODAY] && m1.days[TODAY].s.join("") === "33333");
@@ -164,6 +168,8 @@ try {
   check("見逃し：✕ と「✕見逃し」の文字・破線（色だけで分けない）", (await p.textContent(".verdict .hd")).includes("✕") && await p.locator(".slot.miss").count() === 1 && (await p.textContent(".slot.miss")).includes("✕見逃し"));
   await auto(p, { extra: [7] }); await p.click("#next"); await playOne(p);
   check("打ちすぎ：休みで押すと「✕打ちすぎ」", (await p.textContent(".verdict .hd")).includes("打ちすぎ") && (await p.textContent(".slot.over")).includes("打ちすぎ"));
+  await auto(p, { extra: [0] }); await p.click("#again"); await playOne(p);
+  check("同じ拍を2回押すと、そのますに「✕打ちすぎ」（当たりの印のままにしない）", (await p.textContent("#sl0")).includes("打ちすぎ") && await p.locator("#sl0.over").count() === 1);
   await auto(p, { err: 0.1 }); await p.click("#again"); await playOne(p);
   check("少しずれると ○よい で★2（「もう一度」で同じことば）", (await p.textContent(".verdict .hd")).includes("★★") && !(await p.textContent(".verdict .hd")).includes("★★★") && (await p.textContent(".slot.hit .m")).includes("○"));
   const m3 = await mem(p);
@@ -203,6 +209,8 @@ try {
   await p.click('[data-kind="plain"]');
   check("拍帳：しくみを押すと、打てたことばと区切りが出る", (await p.textContent(".wlist")).includes("・") || (await p.textContent(".wlist")).includes("まだ"));
   await p.click("#back"); await p.click("#go-ach");
+  const gotN = await p.locator(".ach.got").count();
+  check("実績の数は、見出しとカードの達成がそろう", (await p.textContent("h1")).includes(`${gotN}/13`));
   check("実績：13個・まだのものは いま/目標", await p.locator(".ach").count() === 13 && (await p.textContent(".ach:not(.got) .pg")).includes("/"));
 
   // ずれを合わせる：0.05秒遅く押す人
@@ -235,9 +243,10 @@ try {
   await r.click("#pad"); await r.waitForTimeout(700);
   for (let i = 0; i < 3; i++) { await r.keyboard.press("Space"); await r.waitForTimeout(250); }
   await r.dispatchEvent("#pad", "pointerdown", { pointerType: "touch" });
+  await r.waitForTimeout(450); await r.dispatchEvent("#pad", "click"); // 支援技術など click だけで来る操作
   const okV = await r.waitForSelector(".verdict", { timeout: 15000 }).then(() => true, () => false);
   const hk = await r.evaluate(() => ({ taps: window.__hk.taps, last: window.__hk.last && window.__hk.last.taps.length }));
-  check("本当に押す：スペースキーとタップの両方を数え、小節の終わりに判定が出る", okV && hk.taps === 4 && hk.last === 4, JSON.stringify(hk));
+  check("本当に押す：スペースキー・タップ・click だけの操作を1回ずつ数え、小節の終わりに判定が出る", okV && hk.taps === 5 && hk.last === 5, JSON.stringify(hk));
   check("遊ぶ画面はスマホ幅（390px）で横にはみ出さない", await noOverflow(r));
   await r.context().close();
 

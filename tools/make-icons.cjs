@@ -9,8 +9,9 @@ const F = "'Noto Sans CJK JP',sans-serif";
     const p = await b.newPage({ viewport: { width: s, height: s } });
     await p.setContent(`<body style="margin:0"><svg width="${s}" height="${s}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <rect width="100" height="100" fill="#f6f0e4"/>
+      <g transform="translate(12 12) scale(0.76)"><!-- maskable：丸く切られても欠けないよう、中身を中央の安全な円（半径40%）に収める -->
       <text x="50" y="58" font-size="44" text-anchor="middle" fill="#22242e" font-family="${F}" font-weight="900">拍</text>
-      ${[0, 1, 2, 3].map((i) => `<rect x="${17 + i * 17}" y="70" width="13" height="13" rx="3" fill="${i < 3 ? "#b23a24" : "#25457d"}"/>`).join("")}</svg></body>`);
+      ${[0, 1, 2, 3].map((i) => `<rect x="${17 + i * 17}" y="70" width="13" height="13" rx="3" fill="${i < 3 ? "#b23a24" : "#25457d"}"/>`).join("")}</g></svg></body>`);
     await p.screenshot({ path: path.join(__dirname, "..", `icon-${s}.png`), clip: { x: 0, y: 0, width: s, height: s } });
   }
   const p = await b.newPage({ viewport: { width: 1200, height: 630 } });

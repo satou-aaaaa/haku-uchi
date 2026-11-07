@@ -378,6 +378,7 @@ const ACH = [
   ["e30", "🌟", "とことん30", "とことんで30語続けて打てた", (t) => [t.e, 30]],
   ["cal", "🎚️", "ずれを合わせた", "音と指のずれを合わせた", (t) => [t.cal, 1]],
 ];
+const achGot = (s) => { const t = tally(s); return ACH.filter(([, , , , f]) => { const [a, b] = f(t); return a >= b; }).length; };
 function newAch() { const s = load(), t = tally(s), out = []; for (const [id, ic, nm, , f] of ACH) { const [a, b] = f(t); if (a >= b && !s.ach[id]) out.push({ id, ic, nm }); } if (out.length) save((s2) => out.forEach((a) => { s2.ach[a.id] = todayKey(); })); return out; }
 
 // ---- 音（Web Audio。音はその場で作る。ファイルを使わない）----
@@ -387,7 +388,9 @@ function ac() {
   if (AC.state !== "running") AC.resume().catch(() => {});
   return AC;
 }
-function blip(t, f, v) { const c = AC, o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.1); }
+function blip(t, f, v) { const c = AC, o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.1); SCHED.push(o); }
+let SCHED = []; // 予約した音。画面を離れたら止める（前の小節の音が次と重ならないように）
+function stopSched() { for (const o of SCHED) { try { o.stop(); } catch (e) {} } SCHED = []; }
 function clack() { // 押したときの拍子木のような音
   const c = AC; if (!c) return;
   if (!NOISE) { NOISE = c.createBuffer(1, Math.floor(c.sampleRate * 0.06), c.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3); }
@@ -411,14 +414,15 @@ function paintSlots(res, mora, end) {
     const g = res.g[i], over = res.extraAt.includes(i);
     el.classList.remove("hit", "miss", "rest", "over");
     const k = el.querySelector(".k"), m = el.querySelector(".m");
-    if (g === "p" || g === "g" || g === "o") { el.classList.add("hit"); k.textContent = mora[i]; m.textContent = MARK[g]; }
-    else if (over) { el.classList.add("over"); k.textContent = i < mora.length ? mora[i] : "休"; m.textContent = "✕打ちすぎ"; }
+    if (over) { el.classList.add("over"); k.textContent = i < mora.length ? mora[i] : "休"; m.textContent = "✕打ちすぎ"; }
+    else if (g === "p" || g === "g" || g === "o") { el.classList.add("hit"); k.textContent = mora[i]; m.textContent = MARK[g]; }
     else if (end && g === "x") { el.classList.add("miss"); k.textContent = mora[i]; m.textContent = "✕見逃し"; }
     else if (end && g === "r") { el.classList.add("rest"); k.textContent = "休"; m.textContent = "−"; }
   }
 }
 function playBar(mora) {
   const s = load(), n = mora.length, bpm = s.opt.bpm, spb = 60 / bpm;
+  HK.last = null; stopSched();
   if (HK.auto) { // 検査：音を待たずに判定
     const beats = Array.from({ length: H.BEATS }, (_, i) => i * spb);
     const res = H.judge(beats, n, HK.auto(beats, n));
@@ -432,11 +436,11 @@ function playBar(mora) {
     const beats = Array.from({ length: H.BEATS }, (_, i) => t0 + i * spb);
     beats.forEach((t) => blip(t, 660, 0.18));
     const taps = [];
-    PLAY = { beats, taps, n, mora };
+    const me = (PLAY = { beats, taps, raw: [], n, mora });
     const pad = $("pad"), cnt = $("count");
     let last = -9;
     const tick = () => {
-      if (!PLAY) return;
+      if (PLAY !== me) return; // 画面を離れた・別の小節が始まった
       const h = heardNow();
       if (h < t0 - spb * 0.5) { const k = Math.ceil((t0 - h) / spb); cnt.textContent = k > 1 ? String(k - 1) : "はい"; }
       else cnt.textContent = "";
@@ -444,7 +448,7 @@ function playBar(mora) {
       if (cur !== last) { if (last >= 0 && last < H.BEATS) $("sl" + last).classList.remove("now"); if (cur >= 0 && cur < H.BEATS) $("sl" + cur).classList.add("now"); last = cur; }
       if (h > beats[H.BEATS - 1] + spb * 0.6) {
         if (last >= 0 && last < H.BEATS) $("sl" + last).classList.remove("now");
-        const res = H.judge(beats, n, taps); PLAY = null; pad.disabled = true; HK.last = { taps: taps.slice(), beats };
+        const res = H.judge(beats, n, taps); PLAY = null; pad.disabled = true; HK.last = { taps: taps.slice(), raw: me.raw.slice(), beats };
         paintSlots(res, mora, true); done(res); return;
       }
       requestAnimationFrame(tick);
@@ -455,13 +459,17 @@ function playBar(mora) {
 function onTap(ts) {
   if (!PLAY || !AC) return;
   const s = load();
-  PLAY.taps.push(heardAt(ts) - s.opt.off); HK.taps++;
+  const raw = heardAt(ts); LASTIN = performance.now();
+  PLAY.raw.push(raw); PLAY.taps.push(raw - s.opt.off); HK.taps++;
   clack();
   const pad = $("pad"); pad.classList.add("hitfx"); setTimeout(() => pad.classList.remove("hitfx"), 90);
   if (PLAY.n !== undefined) paintSlots(H.judge(PLAY.beats, PLAY.n, PLAY.taps), PLAY.mora, false);
 }
+let LASTIN = -1e9; // 最後に押した時刻（click だけで来る操作を二重に数えないため）
 document.addEventListener("keydown", (e) => {
   if (!PLAY || e.repeat) return;
+  const b = e.target && e.target.closest && e.target.closest("button,a,input,select,textarea");
+  if (b && b.id !== "pad") return; // ほかのボタンでは、そのボタンの操作を優先
   if (e.key === " " || e.key === "Enter" || e.key === "f" || e.key === "j") { e.preventDefault(); onTap(e.timeStamp); }
 });
 
@@ -474,7 +482,7 @@ function openHow() { $("fb2").href = FEEDBACK; const d = $("howto"); if (d.showM
 $("howto-ok").onclick = () => { const d = $("howto"); if (d.close) d.close(); else d.removeAttribute("open"); };
 $("howto").addEventListener("close", () => save((s) => { s.tut = true; }));
 const hdr = (title, sub = "") => `<header><h1>${title}${sub ? `<small>${sub}</small>` : ""}</h1><button class="icon" id="back" aria-label="ホームへ戻る">ホーム</button></header>`;
-function show(html, map = {}) { PLAY = null; app.innerHTML = html; bind(Object.assign({ back: home }, map)); scrollTo(0, 0); const f = app.querySelector("h1,.title"); if (f) { f.setAttribute("tabindex", "-1"); } }
+function show(html, map = {}) { PLAY = null; stopSched(); app.innerHTML = html; bind(Object.assign({ back: home }, map)); scrollTo(0, 0); const f = app.querySelector("h1,.title"); if (f) { f.setAttribute("tabindex", "-1"); } }
 
 // ---- ホーム ----
 function home() {
@@ -486,7 +494,7 @@ function home() {
     <button class="main alt" id="go-h">${hd ? "上級：今日の一句（結果を見る）" : "上級：今日の一句<small>5・7・5を3小節で</small>"}</button>
     <button class="main alt" id="go-e">${re ? `とことんの続きから（${re.streak}語続いている）` : "とことん：好きなだけ"}${s.ebest ? `<small>ベスト ${s.ebest}語続けて</small>` : ""}</button>
     <div class="row"><button class="sub" id="go-p">練習（何度でも）</button><button class="sub" id="go-book">拍帳 ${t.w}語</button></div>
-    <div class="row"><button class="sub" id="go-cal">カレンダー${late.length ? `（あとから ${late.length}日）` : ""}</button><button class="sub" id="go-ach">実績 ${Object.keys(s.ach).length}/${ACH.length}</button></div>
+    <div class="row"><button class="sub" id="go-cal">カレンダー${late.length ? `（あとから ${late.length}日）` : ""}</button><button class="sub" id="go-ach">実績 ${achGot(s)}/${ACH.length}</button></div>
     <div class="opts">
       <div class="seg" role="group" aria-label="テンポ"><span>テンポ</span>${TEMPOS.map(([b, l]) => `<button data-bpm="${b}" aria-pressed="${s.opt.bpm === b}">${l}</button>`).join("")}</div>
       <div class="seg" role="group" aria-label="下読み"><span>下読み</span><button data-easy="0" aria-pressed="${!s.opt.easy}">なし</button><button data-easy="1" aria-pressed="${!!s.opt.easy}">あり</button></div>
@@ -535,8 +543,8 @@ function wordScreen({ title, sub, word, reading, mora, dots, lineNo, after, extr
       after(res);
     });
   };
-  pad.addEventListener("pointerdown", (e) => { if (!started) { e.preventDefault(); start(); return; } e.preventDefault(); onTap(e.timeStamp); });
-  pad.addEventListener("click", () => { if (!started) start(); }); // キーボードで「はじめる」
+  pad.addEventListener("pointerdown", (e) => { e.preventDefault(); if (!started) { LASTIN = performance.now(); start(); return; } onTap(e.timeStamp); }); // 始めた押し方のあとの click を拍に数えない
+  pad.addEventListener("click", (e) => { if (!started) return start(); if (performance.now() - LASTIN > 400) onTap(e.timeStamp); }); // キーボード・支援技術の click だけの操作も1回に数える
   pad.focus({ preventScroll: true });
 }
 const dotsHtml = (n, i) => `<div class="dots" aria-label="${n}語のうち${i + 1}語目">${Array.from({ length: n }, (_, j) => `<i class="${j < i ? "done" : j === i ? "on" : ""}"></i>`).join("")}</div>`;
@@ -557,13 +565,15 @@ function dailyStep(k, late) {
   wordScreen({ title: late ? `あとから ${md(k)}` : "今日の5語", sub: `第${dayNo(k)}回`, word: w.w, reading: w.r, mora: w.m, dots: dotsHtml(r.ids.length, i),
     after: (res) => {
       save((s2) => { const r2 = s2.runs[key]; if (r2 && r2.date === k && r2.res.length === i) r2.res.push(res.stars); if (res.ok) keepBest(s2.words, w.id, res.stars); });
-      nextBtn(i + 1 < r.ids.length ? "つぎのことば" : "結果を見る", () => dailyStep(k, late));
+      if (i + 1 < r.ids.length) nextBtn("つぎのことば", () => dailyStep(k, late));
+      else { const first = commitDaily(k, late); nextBtn("結果を見る", () => result(late ? "l" : "d", k, first)); } // 最後の判定で記録を確定（結果を見ずに閉じても残る）
     } });
 }
-function finishDaily(k, late) {
+function finishDaily(k, late) { result(late ? "l" : "d", k, commitDaily(k, late)); }
+function commitDaily(k, late) {
   let first = false;
   save((s) => { const key = late ? "l" : "d", r = s.runs[key]; if (!r) return; const book = late ? s.late : s.days; if (!book[k] && !(late && s.days[k])) { book[k] = { s: r.res, ids: r.ids }; first = true; } delete s.runs[key]; });
-  result(late ? "l" : "d", k, first);
+  return first;
 }
 
 // ---- 上級：今日の一句 ----
@@ -574,13 +584,20 @@ function startHard(k) {
 function hardStep(k) {
   const s = load(), r = s.runs.h; if (!r || r.date !== k) return home();
   const hk = H.HAIKU[r.id], i = r.res.length;
-  if (i >= 3) { let first = false; save((s2) => { if (!s2.hdays[k]) { s2.hdays[k] = { s: r.res, id: r.id }; first = true; } if (r.res.every((x) => x > 0)) keepBest(s2.haiku, r.id, Math.min(...r.res)); delete s2.runs.h; }); return result("h", k, first); }
+  if (i >= 3) return result("h", k, commitHard(k));
   const L = hk.lines[i];
   wordScreen({ title: "上級：今日の一句", sub: `${hk.by}`, word: L.w, reading: L.r, mora: L.m, lineNo: `${["上の五", "中の七", "下の五"][i]}（${i + 1}/3）`, dots: dotsHtml(3, i),
     after: (res) => {
       save((s2) => { const r2 = s2.runs.h; if (r2 && r2.date === k && r2.res.length === i) r2.res.push(res.stars); });
-      nextBtn(i < 2 ? "つぎの行" : "結果を見る", () => hardStep(k));
+      if (i < 2) nextBtn("つぎの行", () => hardStep(k));
+      else { const first = commitHard(k); nextBtn("結果を見る", () => result("h", k, first)); }
     } });
+}
+
+function commitHard(k) {
+  let first = false;
+  save((s2) => { const r = s2.runs.h; if (!r || r.date !== k || r.res.length < 3) return; if (!s2.hdays[k]) { s2.hdays[k] = { s: r.res, id: r.id }; first = true; } if (r.res.every((x) => x > 0)) keepBest(s2.haiku, r.id, Math.min(...r.res)); delete s2.runs.h; });
+  return first;
 }
 
 // ---- とことん ----
@@ -595,7 +612,7 @@ function endlessStep() {
   wordScreen({ title: "とことん", sub: `続けて ${r2.streak}語・ベスト ${Math.max(s.ebest, r2.best)}語・まちがい ${r2.miss}`, word: w.w, reading: w.r, mora: w.m,
     extraTop: `<button class="sub" id="quit">ここで降りる</button>`,
     after: (res) => {
-      save((s3) => { const e = s3.runs.e; if (!e) return; e.i++; e.n++; if (res.ok) { e.streak++; e.best = Math.max(e.best, e.streak); keepBest(s3.words, w.id, res.stars); } else { e.streak = 0; e.miss++; } s3.ebest = Math.max(s3.ebest, e.best); });
+      save((s3) => { const e = s3.runs.e; if (!e || e.i !== r2.i || e.list[e.i] !== w.id) return; e.i++; e.n++; if (res.ok) { e.streak++; e.best = Math.max(e.best, e.streak); keepBest(s3.words, w.id, res.stars); } else { e.streak = 0; e.miss++; } s3.ebest = Math.max(s3.ebest, e.best); });
       nextBtn("つぎのことば", endlessStep);
     } });
   $("quit").onclick = endEndless;
@@ -666,7 +683,7 @@ function book(kind) {
 // ---- 実績 ----
 function achView() {
   const s = load(), t = tally(s);
-  show(`${hdr("実績", `${Object.keys(s.ach).length}/${ACH.length}`)}<div class="alist">${ACH.map(([id, ic, nm, cd, f]) => { const [a, b] = f(t), ok = a >= b; return `<div class="ach${ok ? " got" : ""}"><span class="ic" aria-hidden="true">${ok ? ic : "🔒"}</span><b>${ok ? "✓ " : ""}${esc(nm)}</b><span class="pg">${Math.min(a, b)}/${b}</span><small>${esc(cd)}</small><span class="bar"><i style="width:${Math.min(100, (a / b) * 100)}%"></i></span></div>`; }).join("")}</div>${footer()}`);
+  show(`${hdr("実績", `${achGot(s)}/${ACH.length}`)}<div class="alist">${ACH.map(([id, ic, nm, cd, f]) => { const [a, b] = f(t), ok = a >= b; return `<div class="ach${ok ? " got" : ""}"><span class="ic" aria-hidden="true">${ok ? ic : "🔒"}</span><b>${ok ? "✓ " : ""}${esc(nm)}</b><span class="pg">${Math.min(a, b)}/${b}</span><small>${esc(cd)}</small><span class="bar"><i style="width:${Math.min(100, (a / b) * 100)}%"></i></span></div>`; }).join("")}</div>${footer()}`);
 }
 
 // ---- カレンダー ----
@@ -708,12 +725,11 @@ function calib() {
   const pad = $("pad"); let started = false;
   const start = () => {
     if (started) return; started = true; ac(); pad.innerHTML = "タン<small>音に合わせて</small>";
-    const off0 = load().opt.off;
     const run = HK.auto ? Promise.resolve(HK.auto(Array.from({ length: 8 }, (_, i) => i * (60 / load().opt.bpm)), 8)).then((taps) => ({ taps, beats: Array.from({ length: 8 }, (_, i) => i * (60 / load().opt.bpm)) }))
-      : playBar(Array(8).fill("拍")).then(() => HK.last);
-    run.then(({ taps, beats }) => {
+      : playBar(Array(8).fill("拍")).then(() => (HK.last ? { taps: HK.last.raw, beats: HK.last.beats } : { taps: [], beats: [0, 1, 2, 3, 4, 5, 6, 7] }));
+    run.then(({ taps, beats }) => { // taps はずれを直す前の時刻（途中で ±10 を押しても測りまちがえない）
       const spb = beats[1] - beats[0], errs = [];
-      for (const t of taps) { const raw = t + (HK.auto ? 0 : off0); let bi = 0; beats.forEach((b, i) => { if (Math.abs(raw - b) < Math.abs(raw - beats[bi])) bi = i; }); const e = raw - beats[bi]; if (Math.abs(e) < spb / 2) errs.push(e); }
+      for (const raw of taps) { let bi = 0; beats.forEach((b, i) => { if (Math.abs(raw - b) < Math.abs(raw - beats[bi])) bi = i; }); const e = raw - beats[bi]; if (Math.abs(e) < spb / 2) errs.push(e); }
       if (errs.length < 5) { $("cv").textContent = "押した回数が少なかったので、もう一度"; say("押した回数が少なかったので、もう一度"); started = false; pad.disabled = false; pad.innerHTML = "もう一度<small>押すと「3・2・1・はい」</small>"; return; }
       errs.sort((a, b) => a - b);
       const med = errs[Math.floor(errs.length / 2)], off = Math.max(-0.3, Math.min(0.3, Math.round(med * 1000) / 1000));
@@ -724,8 +740,8 @@ function calib() {
       const na = newAch(); if (na.length) toast(`${na[0].ic} 実績「${na[0].nm}」`);
     });
   };
-  pad.addEventListener("pointerdown", (e) => { e.preventDefault(); if (!started) start(); else onTap(e.timeStamp); });
-  pad.addEventListener("click", () => { if (!started) start(); });
+  pad.addEventListener("pointerdown", (e) => { e.preventDefault(); if (!started) { LASTIN = performance.now(); start(); } else onTap(e.timeStamp); });
+  pad.addEventListener("click", (e) => { if (!started) return start(); if (performance.now() - LASTIN > 400) onTap(e.timeStamp); });
 }
 
 // ---- このゲームについて ----
