@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'">
+<title>拍うち</title>
+<meta name="description" content="ことばの拍（はく）に合わせて、1拍に1回タップする音ゲー。小さい「っ」や「ー」も1拍。遊ぶうちに日本語の拍の数え方が身につく。">
+<meta name="theme-color" content="#f6f0e4">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="拍うち">
+<meta property="og:title" content="拍うち：ことばに手拍子">
+<meta property="og:description" content="「がっこう」は何拍？ ことばの拍に合わせてタップする音ゲー。1日5語・好きなだけ遊べる。">
+<meta property="og:url" content="https://satou-aaaaa.github.io/haku-uchi/">
+<meta property="og:image" content="https://satou-aaaaa.github.io/haku-uchi/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="拍うち：ことばの拍に合わせてタップする音ゲー">
+<meta property="og:locale" content="ja_JP">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* 手拍子の稽古帳：生成りの紙に墨の字、朱の拍、藍の休み。大きな押す所と、はっきりした色の差 */
+:root{
+  --bg:#f6f0e4; --paper:#fffdf7; --ink:#22242e; --ink2:#50535f; --line:#22242e26;
+  --shu:#b23a24; --shu2:#7f2716; --ai:#25457d; --ai2:#16305c; --ok:#24704a; --ok2:#174f31; --gold:#9a6a0c;
+  --f-body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic",sans-serif;
+  color-scheme:light;
+}
+html{font-size:20px;height:100%}body{min-height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-weight:500;-webkit-tap-highlight-color:transparent;line-height:1.6}
+.wrap{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 88px;display:flex;flex-direction:column;gap:14px;min-height:100vh;box-sizing:border-box}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:52px}
+h1{font-weight:900;font-size:1.1rem;margin:0;flex:1;min-width:0;letter-spacing:.04em}
+h1 small{display:block;font-size:.75rem;color:var(--ink2);font-weight:500;line-height:1.3;letter-spacing:0}
+.icon{all:unset;cursor:pointer;font-size:.95rem;min-width:52px;height:52px;display:grid;place-items:center;border-radius:12px;border:2px solid var(--line);box-sizing:border-box;padding:0 10px;background:var(--paper);font-weight:700}
+button.main{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:64px;border-radius:16px;background:var(--shu);color:#fff;font-weight:900;font-size:1.1rem;padding:8px 18px;text-align:center;box-shadow:0 5px 0 var(--shu2);line-height:1.35}
+button.main:active{transform:translateY(3px);box-shadow:0 2px 0 var(--shu2)}
+button.main.alt{background:var(--ai);box-shadow:0 5px 0 var(--ai2)}
+button.main small{font-weight:500;font-size:.78rem}
+button.sub{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;min-height:56px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);font-weight:700;font-size:.92rem;padding:4px 12px;text-align:center;line-height:1.35}
+.row{display:flex;gap:10px}.row>*{flex:1 1 0!important;min-width:0}
+#after{display:flex;flex-direction:column;gap:10px}
+.note{color:var(--ink2);font-size:.85rem;line-height:1.7;margin:0;text-align:center}
+.note a,.about a{color:var(--shu2);display:inline-flex;align-items:center;min-height:44px}
+.title{font-weight:900;font-size:2.4rem;letter-spacing:.2em;text-align:center;margin:10px 0 0;color:var(--ink)}
+.title span{color:var(--shu)}
+.lead{text-align:center;color:var(--ink2);margin:0;font-size:.95rem;line-height:1.7}
+.opts{display:flex;flex-direction:column;gap:8px;background:var(--paper);border:2px solid var(--line);border-radius:14px;padding:10px}
+.seg{display:flex;gap:6px;align-items:center;font-size:.85rem;color:var(--ink2);flex-wrap:wrap;justify-content:center}
+.seg>span{min-width:4.5em;text-align:right}
+.seg button{all:unset;box-sizing:border-box;cursor:pointer;min-width:64px;min-height:48px;display:grid;place-items:center;border-radius:10px;border:2px solid var(--line);background:#fff;font-weight:900;color:var(--ink);padding:0 8px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.seg button[aria-pressed="true"]::before{content:"✓ "}
+/* ことばと拍 */
+.word{text-align:center;margin:4px 0 0}
+.word .w{font-size:2.2rem;font-weight:900;letter-spacing:.08em;line-height:1.25}
+.word .r{font-size:1.25rem;color:var(--ink2);letter-spacing:.12em}
+.lineno{text-align:center;font-size:.85rem;color:var(--ink2);margin:0}
+.count{text-align:center;font-weight:900;font-size:1.5rem;min-height:2.2rem;margin:0;color:var(--ai2)}
+.slots{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}
+.slot{position:relative;min-height:66px;border-radius:12px;border:2px solid var(--line);background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:900;font-size:1.1rem;line-height:1.1;box-sizing:border-box}
+.slot .k{min-height:1.3em}
+.slot .m{font-size:.7rem;font-weight:700;color:var(--ink2);margin-top:2px}
+.slot.pre .k{color:var(--ink2);font-weight:700}
+.slot.now{border:3px solid var(--ink);box-shadow:0 0 0 3px #22242e33}
+.slot.hit{background:#eef7f0;border-color:var(--ok)}
+.slot.hit .m{color:var(--ok2)}
+.slot.miss{border:2px dashed var(--shu);background:#fff}
+.slot.miss .m{color:var(--shu2)}
+.slot.rest{background:#eef2f9;border-color:#25457d55;color:var(--ai2)}
+.slot.over{border:3px solid var(--shu);background:#fff3ef}
+.slot.over .m{color:var(--shu2)}
+.pad{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:150px;border-radius:24px;background:var(--shu);color:#fff;font-weight:900;font-size:1.6rem;box-shadow:0 7px 0 var(--shu2);touch-action:manipulation;user-select:none;-webkit-user-select:none;text-align:center}
+.pad small{font-size:.75rem;font-weight:500}
+.pad.hitfx{transform:translateY(4px);box-shadow:0 3px 0 var(--shu2)}
+.pad:disabled{opacity:.5;cursor:default}
+.verdict{background:var(--paper);border:2px solid var(--ok);border-radius:16px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;animation:up .3s ease-out}
+.verdict.lose{border-color:var(--shu);border-style:dashed}
+.verdict .hd{text-align:center;font-weight:900;font-size:1.25rem}
+.verdict .sp{text-align:center;font-size:1.3rem;font-weight:900;letter-spacing:.06em}
+.verdict .sp em{font-style:normal;color:var(--shu2);border-bottom:3px solid var(--shu)}
+.verdict p{margin:0;font-size:.95rem;line-height:1.7}
+.stars{color:var(--gold);letter-spacing:.08em}
+.stars .off{color:#22242e40}
+.dots{display:flex;gap:6px;flex:1;max-width:200px}
+.dots i{flex:1;height:8px;border-radius:4px;background:var(--line)}
+.dots i.on{background:var(--shu)}.dots i.done{background:var(--ai)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stats div{background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:8px 4px;text-align:center}
+.stats b{display:block;font-size:1.3rem}
+.stats small{color:var(--ink2);font-size:.75rem}
+.share{background:var(--paper);border-radius:12px;padding:12px;white-space:pre-line;font-size:1rem;line-height:1.6;text-align:center;border:2px solid var(--line)}
+.shares{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.shares a,.shares button{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);font-size:.9rem;font-weight:700;text-decoration:none;box-sizing:border-box;font-family:inherit;cursor:pointer}
+.rlist{display:flex;flex-direction:column;gap:6px}
+.rlist div{display:flex;align-items:center;gap:10px;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:6px 12px;font-size:.92rem}
+.rlist .w{flex:1;min-width:0}
+.achnew{text-align:center;font-weight:700;color:var(--shu2);margin:0}
+.book{display:flex;flex-direction:column;gap:8px}
+.book button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:2.4rem 1fr auto;align-items:center;gap:10px;min-height:60px;border-radius:12px;padding:6px 12px;background:var(--paper);border:2px solid var(--line);font-size:.95rem;line-height:1.4}
+.book .mk{font-size:1.4rem;font-weight:900;text-align:center;color:var(--shu2)}
+.book small{display:block;color:var(--ink2);font-size:.78rem}
+.book .ct{font-size:.8rem;color:var(--ink2);white-space:nowrap}
+.wlist{display:flex;flex-wrap:wrap;gap:6px}
+.wlist span{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:2px 8px;font-size:.88rem}
+.haiku{background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:10px 14px;line-height:1.8}
+.haiku small{color:var(--ink2)}
+.alist{display:flex;flex-direction:column;gap:8px}
+.ach{display:grid;grid-template-columns:1.8rem 1fr auto;grid-template-areas:"ic nm pg" "ic cd cd" "ic br br";align-items:center;gap:3px 10px;background:var(--paper);border:2px solid var(--line);border-radius:12px;padding:8px 12px}
+.ach .ic{grid-area:ic;font-size:1.2rem;text-align:center}
+.ach b{grid-area:nm;font-size:.95rem}.ach small{grid-area:cd;color:var(--ink2);font-size:.8rem;line-height:1.4}
+.ach .pg{grid-area:pg;font-size:.8rem;color:var(--ink2);white-space:nowrap}
+.ach .bar{grid-area:br;height:6px;border-radius:3px;background:var(--line);overflow:hidden}.ach .bar i{display:block;height:100%;background:var(--ai)}
+.ach.got{background:#eef2f9;border-color:var(--ai)}
+.ach:not(.got) .ic{filter:grayscale(1);opacity:.5}
+.calnav{display:flex;align-items:center;gap:8px}.calnav b{flex:1;text-align:center}.calnav .sub{flex:0 0 72px}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{font-size:.7rem;color:var(--ink2);text-align:center}
+.cal .c{all:unset;box-sizing:border-box;min-height:48px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:.9rem;background:var(--paper);border:1px solid var(--line);line-height:1.1}
+.cal .c i{font-style:normal;font-size:.6rem;color:var(--gold)}
+.cal .c.p{background:#eef2f9;border:2px solid var(--ai)}
+.cal .c.late{border:1.5px dashed var(--ai);color:var(--ai2)}
+.cal .c.miss{cursor:pointer;border:2px dashed var(--shu);color:var(--shu2);background:#fff}
+.cal .c.today{outline:2px solid var(--ink)}
+.cal .c.off{visibility:hidden}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:center;font-size:.75rem;color:var(--ink2)}
+.about h3{font-size:1rem;margin:.6rem 0 .2rem}
+.about p,.about li{font-size:.92rem;line-height:1.8;text-align:left}
+.about ul{padding-left:1.2em;margin:0}
+.calib{font-size:1.4rem;font-weight:900;text-align:center;margin:0}
+dialog#howto{border:none;border-radius:16px;background:var(--paper);color:var(--ink);max-width:440px;width:calc(100% - 32px);padding:20px;box-sizing:border-box}
+dialog#howto::backdrop{background:#000000aa}
+dialog#howto h2{margin:0 0 10px}
+dialog#howto ol{padding-left:1.3em;margin:0 0 12px;line-height:1.8}
+dialog#howto p{margin:0 0 10px;font-size:.9rem;line-height:1.7;color:var(--ink2)}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;z-index:9;max-width:90%;text-align:center}
+footer{margin-top:auto;text-align:center;font-size:.8rem;color:var(--ink2);display:flex;gap:4px 14px;justify-content:center;flex-wrap:wrap}
+footer a{color:var(--ink2);min-height:44px;display:inline-flex;align-items:center}
+@keyframes up{from{transform:translateY(12px);opacity:0}to{transform:none;opacity:1}}
+@media (max-width:400px){.slots{grid-template-columns:repeat(4,1fr)}.word .w{font-size:1.9rem}}
+/* 色の見分けを助ける：当たった拍は青、まちがいは橙にし、縁を太く */
+html.a11y-cvd .slot.hit{border-color:#005a8c;border-width:3px;background:#e8f1f8}
+html.a11y-cvd .slot.miss,html.a11y-cvd .slot.over{border-color:#a63d00;border-width:3px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+:is(.icon,button,a,.pad):focus-visible{outline:3px solid var(--ai)!important;outline-offset:2px}
+</style>
+<!-- a11y:begin 見やすさの設定 v5（shared-workflows template/a11y/a11y.html の写し。ここでは直さず、ひな形を直して全部のゲームへ写す。drift-check と qa/a11y.mjs が同じ中身か見る） -->
+<style id="a11y-css">
+/* だれでも：キーボードで選んだ所に太い枠（WCAG 2.4.7・2.4.13） */
+:is(button,a,input,select,textarea,summary,[tabindex]):focus-visible{outline:3px solid #1a5fd0!important;outline-offset:2px!important;box-shadow:0 0 0 5px #fff!important}
+/* 読みやすい文字：UD フォント・行間 1.7・字間を少し広げる・斜体にしない（BDA Dyslexia Style Guide） */
+html.a11y-read body{line-height:1.7}
+html.a11y-read body,html.a11y-read body :where(*:not(svg):not(svg *):not([data-a11y-keepfont]):not([data-a11y-keepfont] *)){font-family:"BIZ UDPGothic","BIZ UDGothic","UD デジタル 教科書体 NK-R","UD Digi Kyokasho NK-R","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI",Meiryo,sans-serif!important;font-style:normal!important}
+html.a11y-read :is(p,li,dd,dt,blockquote,[data-a11y-say]){line-height:1.8!important;letter-spacing:.04em!important}
+html.a11y-read em,html.a11y-read i:not([aria-hidden]){font-style:normal!important;font-weight:700}
+/* 動きを減らす：揺れ・点滅・すべる動きを止める（WCAG 2.3.3。端末の「視差効果を減らす」でも自動で入る） */
+html.a11y-calm *,html.a11y-calm *::before,html.a11y-calm *::after{animation-duration:.001ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.001ms!important;transition-delay:0s!important;scroll-behavior:auto!important}
+/* 色の見分けを助ける：ゲームごとの形・模様は各ゲームが html.a11y-cvd の下に書く。ここではリンクに下線 */
+html.a11y-cvd a{text-decoration:underline!important}
+/* ふりがな：ゲームが <ruby class="a11y-rb"> を置いた所だけ。選んだときだけ出す */
+html:not(.a11y-ruby) ruby.a11y-rb>rt{display:none}
+/* 設定の画面（どのゲームでも同じ見た目・同じ濃さ。白地に黒で 15:1） */
+.a11y-dlg{max-width:min(420px,calc(100vw - 32px));width:100%;box-sizing:border-box;border:2px solid #1d2320;border-radius:14px;padding:18px 16px 14px;background:#fffdf8;color:#1d2320;font:500 16px/1.6 "BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;letter-spacing:0}
+.a11y-dlg::backdrop{background:#0008}
+.a11y-dlg h2{font-size:19px;margin:0 0 4px;font-weight:700;line-height:1.4}
+.a11y-dlg p{margin:4px 0 10px;font-size:14px;color:#3d4440;line-height:1.6}
+.a11y-dlg label{display:flex;gap:12px;align-items:center;min-height:48px;padding:6px 4px;border-top:1px solid #1d232022;cursor:pointer;line-height:1.4}
+.a11y-dlg label small{display:block;font-size:13px;color:#3d4440}
+.a11y-dlg input[type=checkbox]{width:26px;height:26px;flex:none;accent-color:#1a5fd0;margin:0}
+.a11y-dlg .a11y-row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.a11y-dlg button,.a11y-btn,.a11y-saybtn{min-height:44px;min-width:44px;border-radius:10px;border:2px solid #1d2320;background:#fff;color:#1d2320;font:700 15px/1.2 "BIZ UDPGothic","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif;padding:0 14px;cursor:pointer;letter-spacing:0}
+.a11y-dlg button.a11y-ok{background:#1d2320;color:#fff}
+.a11y-btn.a11y-float{position:fixed;left:max(8px,env(safe-area-inset-left,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:2147483000}
+/* 読み上げボタンが、いちばん下のボタン・リンクにかぶらないよう下をあける */
+html.a11y-say body{padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))!important}
+.a11y-saybtn{position:fixed;right:max(8px,env(safe-area-inset-right,0px));bottom:max(8px,env(safe-area-inset-bottom,0px));z-index:2147483000;box-shadow:0 2px 8px #0003}
+.a11y-saybtn[hidden],.a11y-dlg [hidden]{display:none!important}
+.a11y-note{font-size:13px!important}
+</style>
+<script id="a11y-script">
+/* 見やすさの設定（色覚・ディスレクシア・弱視・動きに弱い人のため）。外へは何も送らない。
+   設定は localStorage の a11y-v1 に置く。同じサイト（satou-aaaaa.github.io）のゲームは同じ設定を使う。
+   ゲームの側でできること：
+   - 設定を開くボタンに data-a11y-open を付ける（無ければ左下に「Aa」のボタンを出す）
+   - 読み上げる文に data-a11y-say を付ける（問題文・知らせなど）
+   - 色の見分けを助ける形・模様は html.a11y-cvd の下に CSS で書く。JS では A11y.on('cvd')
+   - 揺れ・すべる動きを JS で動かすときは、A11y.on('calm') なら止める
+   - 設定が変わると document に a11ychange が届く
+   - 設定の印は html の class「a11y-<設定の名前>」（a11y-read など）。部品の class はこれと重ならない名前にする（2026-11-05 a11y-say がボタンとぶつかった） */
+(() => {
+  const KEY = "a11y-v1";
+  const root = document.documentElement;
+  const OPTS = [
+    ["read", "読みやすい文字", "UD フォント・行間と字間を広く"],
+    ["cvd", "色の見分けを助ける", "色に形・模様・記号を足す"],
+    ["calm", "動きを減らす", "揺れ・点滅・すべる動きを止める"],
+    ["say", "読み上げのボタンを出す", "問題や知らせを声で読む（端末の中の声だけ）"],
+    ["ruby", "ふりがなを出す", "むずかしい漢字に読みを付ける"],
+  ];
+  const media = (q) => { try { return matchMedia(q).matches; } catch { return false; } };
+  // 保存した値がオブジェクトでなければ（別のページが書いた・手で直した）無かったことにする（2026-11-05 CodeRabbit：true が入ると設定が開けなくなる）
+  const load = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || "{}"); return v && typeof v === "object" && !Array.isArray(v) ? v : {}; } catch { return {}; } };
+  let S = load();
+  // 決めていないものは端末の設定に合わせる（視差効果を減らす → 動きを減らす）
+  const on = (k) => (k in S ? !!S[k] : k === "calm" ? media("(prefers-reduced-motion: reduce)") : false);
+  let fontLoaded = false;
+  const loadFont = () => {
+    if (fontLoaded) return; fontLoaded = true;
+    // Google Fonts を許しているページだけ取りに行く（許していなければ端末にある UD フォントを使う）
+    const csp = (document.querySelector('meta[http-equiv="Content-Security-Policy"]') || {}).content || "";
+    if (csp && !/fonts\.googleapis\.com/.test(csp)) return;
+    const l = document.createElement("link");
+    l.rel = "stylesheet"; l.href = "https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap";
+    document.head.appendChild(l);
+  };
+  const apply = () => {
+    for (const [k] of OPTS) root.classList.toggle("a11y-" + k, on(k));
+    if (on("read")) loadFont();
+    if (sayBtn) sayBtn.hidden = !on("say");
+    if (!on("say")) stop();
+  };
+  const set = (k, v) => {
+    S = { ...S, ...load() }; // 別のタブで変えた設定を消さないよう、書く前に読み直す
+    S[k] = !!v;
+    try { localStorage.setItem(KEY, JSON.stringify(S)); } catch { /* 保存できなくても今の画面には効かせる */ }
+    apply();
+    document.dispatchEvent(new CustomEvent("a11ychange", { detail: { key: k, on: !!v } }));
+  };
+
+  // 読み上げ：端末の中の日本語の声だけを使う（外へ文字を送る声は使わない）
+  const voice = () => { try { return speechSynthesis.getVoices().find((v) => /^ja/i.test(v.lang) && v.localService) || null; } catch { return null; } };
+  const stop = () => { try { speechSynthesis.cancel(); } catch { /* 無い端末 */ } };
+  const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== "hidden" && !el.closest("[hidden],[aria-hidden=true],[inert]"); };
+  const textOf = (sel) => [...document.querySelectorAll(sel)].filter(visible).map((el) => (el.getAttribute("aria-label") || el.innerText || "").trim()).filter(Boolean).join("。");
+  // data-a11y-say が無い画面では、見出しと知らせの場所を読む（2026-11-05 何も読まれず設定が開くだけだった）
+  const sayText = () => textOf("[data-a11y-say]") || textOf("h1,h2,[role=status],[aria-live]");
+  const say = (text) => {
+    const v = voice();
+    if (!v || !text) return false;
+    stop();
+    const u = new SpeechSynthesisUtterance(text.slice(0, 600));
+    u.voice = v; u.lang = v.lang; u.rate = 0.95;
+    speechSynthesis.speak(u);
+    return true;
+  };
+
+  let dlg = null, sayBtn = null, lastFocus = null;
+  const build = () => {
+    dlg = document.createElement("dialog");
+    dlg.className = "a11y-dlg";
+    dlg.setAttribute("aria-labelledby", "a11y-h");
+    const hasRuby = !!document.querySelector("ruby.a11y-rb");
+    dlg.innerHTML = `<h2 id="a11y-h">見やすさ・読みやすさ</h2><p>ほかのゲームにも同じ設定が使われます。文字は2本の指で広げると大きくなります。</p>` +
+      OPTS.filter(([k]) => k !== "ruby" || hasRuby).map(([k, n, d]) => `<label><input type="checkbox" data-k="${k}"><span>${n}<small>${d}</small></span></label>`).join("") +
+      `<p class="a11y-note" id="a11y-novoice" hidden>この端末には、外へ送らずに読める日本語の声がありません。</p><div class="a11y-row"><button type="button" class="a11y-ok" data-a11y-close>閉じる</button></div>`;
+    document.body.appendChild(dlg);
+    dlg.addEventListener("change", (e) => {
+      const k = e.target.dataset && e.target.dataset.k;
+      if (!k) return;
+      set(k, e.target.checked);
+      if (k === "say") dlg.querySelector("#a11y-novoice").hidden = !(e.target.checked && !voice());
+    });
+    dlg.querySelector("[data-a11y-close]").addEventListener("click", () => dlg.close());
+    dlg.addEventListener("close", () => { if (lastFocus && lastFocus.focus) lastFocus.focus(); });
+    sayBtn = document.createElement("button");
+    sayBtn.type = "button"; sayBtn.className = "a11y-saybtn"; sayBtn.textContent = "🔊 読む"; sayBtn.setAttribute("aria-label", "画面の問題を読み上げる");
+    sayBtn.addEventListener("click", () => {
+      try { if (speechSynthesis.speaking) return stop(); } catch { /* 無い端末 */ }
+      if (!say(sayText())) open();
+    });
+    document.body.appendChild(sayBtn);
+    if (!document.querySelector("[data-a11y-open]")) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "a11y-btn a11y-float"; b.textContent = "Aa"; b.setAttribute("data-a11y-open", ""); b.setAttribute("aria-label", "見やすさの設定");
+      document.body.appendChild(b);
+    }
+    document.addEventListener("click", (e) => { const t = e.target.closest && e.target.closest("[data-a11y-open]"); if (t) { e.preventDefault(); open(); } });
+    apply();
+  };
+  const open = () => {
+    if (!dlg) build();
+    lastFocus = document.activeElement;
+    for (const c of dlg.querySelectorAll("input[data-k]")) c.checked = on(c.dataset.k);
+    dlg.querySelector("#a11y-novoice").hidden = !(on("say") && !voice());
+    if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+  };
+  // 声の一覧はあとから届くことがある。届いたら「声がありません」を出し直す
+  try { speechSynthesis.addEventListener("voiceschanged", () => { if (dlg) dlg.querySelector("#a11y-novoice").hidden = !(on("say") && !voice()); }); } catch { /* 無い端末 */ }
+  apply();
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", build); else build();
+  window.A11y = { on, set, open, say, stop };
+})();
+</script>
+<!-- a11y:end -->
+<script src="transfer.js" data-game="haku-uchi" data-keys="haku-v1"></script>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="live" role="status" aria-live="polite" class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
+<dialog id="howto" aria-labelledby="howto-h">
+  <h2 id="howto-h">遊び方</h2>
+  <ol>
+    <li>「3・2・1・はい」のあと、拍の音が8回鳴ります。</li>
+    <li>ことばの<b>1拍に1回</b>、音に合わせて大きなボタンを押します（スペースキーでも）。</li>
+    <li>ことばが終わったら、残りは<b>休み</b>。押さずに待ちます。</li>
+  </ol>
+  <p>小さい「っ」、「ん」、のばす「ー」も1拍。「きゃ」のような小さい「ゃゅょ」は前の字と合わせて1拍です。</p>
+  <p>音と画面がずれて感じたら、ホームの「ずれを合わせる」で直せます。時間に追われるのがつらいときは、テンポを「ゆっくり」に。</p>
+  <p><a id="fb2" href="#" target="_blank" rel="noopener">💬 感想を送る</a></p>
+  <button class="main" id="howto-ok">わかった</button>
+</dialog>
+<script src="haku.js"></script>
+<script>
+"use strict";
+const H = window.HAKU, $ = (id) => document.getElementById(id), app = $("app");
+const KEY = "haku-v1", EPOCH = "2026-11-07", LATE = 7;
+const URL0 = "https://satou-aaaaa.github.io/haku-uchi/";
+const FEEDBACK = "https://github.com/satou-aaaaa/haku-uchi/issues/new?template=feedback.yml";
+const QS = new URLSearchParams(location.search), QA = QS.get("qa") === "1";
+// 検査（qa/run.mjs）用：?qa=1 のときだけ。auto に関数を入れると、音を待たずにその押した時刻で判定する
+const HK = (window.__hk = { auto: null, taps: 0, last: null });
+const TEMPOS = [[60, "ゆっくり"], [72, "ふつう"], [90, "はやい"]];
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const say = (t) => { const l = $("live"); l.textContent = ""; setTimeout(() => { l.textContent = t; }, 30); };
+const toast = (t) => { const d = document.createElement("div"); d.className = "toast"; d.setAttribute("role", "status"); d.textContent = t; document.body.appendChild(d); setTimeout(() => d.remove(), 2200); };
+
+// ---- 日付（日本時間）----
+const jstNow = () => new Date(Date.now() + 9 * 36e5);
+const todayKey = () => (QA && /^\d{4}-\d\d-\d\d$/.test(QS.get("day") || "") ? QS.get("day") : jstNow().toISOString().slice(0, 10));
+const addDay = (k, n) => { const d = new Date(k + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const prevDay = (k) => addDay(k, -1);
+const dayNo = (k) => Math.round((Date.parse(k) - Date.parse(EPOCH)) / 864e5) + 1;
+const md = (k) => `${+k.slice(5, 7)}/${+k.slice(8, 10)}`;
+
+// ---- 記録（この端末の localStorage だけ）----
+const fresh = () => ({ v: 1, t: 0, tut: false, days: {}, late: {}, hdays: {}, words: {}, haiku: {}, ebest: 0, ach: {}, kofi: {}, runs: {}, opt: { bpm: 72, off: 0, easy: false, cal: false } });
+function load() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  const f = fresh();
+  if (!s || typeof s !== "object" || Array.isArray(s)) return f;
+  for (const q of ["days", "late", "hdays", "words", "haiku", "ach", "kofi", "runs", "opt"]) if (!s[q] || typeof s[q] !== "object" || Array.isArray(s[q])) s[q] = f[q];
+  for (const q of Object.keys(f.opt)) if (!(q in s.opt)) s.opt[q] = f.opt[q];
+  if (!TEMPOS.some(([b]) => b === s.opt.bpm) && !QA) s.opt.bpm = 72;
+  s.opt.off = Math.max(-0.3, Math.min(0.3, Number(s.opt.off) || 0));
+  s.ebest = Number(s.ebest) || 0;
+  return s; // 知らない入れ物は消さない
+}
+// 書く直前に読み直して足す（別のタブの記録を消さない）
+function save(fn) { const s = load(); fn(s); s.t = Math.max(Date.now(), (s.t || 0) + 1); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { toast("記録を保存できませんでした"); } return s; }
+const keepBest = (obj, id, v) => { if (!(obj[id] >= v)) obj[id] = v; };
+function lateDays(s, k = todayKey()) { const out = []; let d = k; for (let i = 0; i < LATE; i++) { d = prevDay(d); if (d < EPOCH) break; if (!s.days[d] && !s.late[d]) out.push(d); } return out; }
+
+// ---- 実績（記録から毎回数える）----
+function tally(s) {
+  const got = Object.keys(s.words).filter((id) => s.words[id] >= 1 && H.WORDS[id]);
+  const kinds = new Set(); got.forEach((id) => H.WORDS[id].k.forEach((k) => kinds.add(k)));
+  return { w: got.length, w3: got.filter((id) => s.words[id] >= 3).length, kinds: kinds.size, days: Object.keys(s.days).length, haiku: Object.keys(s.haiku).filter((id) => s.haiku[id] >= 1).length, e: s.ebest, cal: s.opt.cal ? 1 : 0 };
+}
+const ACH = [
+  ["first", "👏", "はじめの1語", "ことばを1つ打てた", (t) => [t.w, 1]],
+  ["w30", "📗", "30語", "ちがうことばを30語打てた", (t) => [t.w, 30]],
+  ["w100", "📘", "100語", "ちがうことばを100語打てた", (t) => [t.w, 100]],
+  ["w300", "📚", "300語", "ちがうことばを300語打てた", (t) => [t.w, 300]],
+  ["p20", "🎯", "ぴったり20", "全部の拍がぴったり（★3）のことばが20語", (t) => [t.w3, 20]],
+  ["kinds", "🔤", "しくみを全部", "6つの拍のしくみを全部打てた", (t) => [t.kinds, H.KINDS.length]],
+  ["d5", "📅", "5日", "今日の5語を合わせて5日", (t) => [t.days, 5]],
+  ["d20", "🗓️", "20日", "今日の5語を合わせて20日", (t) => [t.days, 20]],
+  ["h1", "🖌️", "はじめの一句", "俳句を1つ打てた", (t) => [t.haiku, 1]],
+  ["h10", "🎐", "十句", "ちがう俳句を10句打てた", (t) => [t.haiku, 10]],
+  ["e10", "🔥", "とことん10", "とことんで10語続けて打てた", (t) => [t.e, 10]],
+  ["e30", "🌟", "とことん30", "とことんで30語続けて打てた", (t) => [t.e, 30]],
+  ["cal", "🎚️", "ずれを合わせた", "音と指のずれを合わせた", (t) => [t.cal, 1]],
+];
+function newAch() { const s = load(), t = tally(s), out = []; for (const [id, ic, nm, , f] of ACH) { const [a, b] = f(t); if (a >= b && !s.ach[id]) out.push({ id, ic, nm }); } if (out.length) save((s2) => out.forEach((a) => { s2.ach[a.id] = todayKey(); })); return out; }
+
+// ---- 音（Web Audio。音はその場で作る。ファイルを使わない）----
+let AC = null, NOISE = null;
+function ac() {
+  if (!AC) { const C = window.AudioContext || window.webkitAudioContext; if (!C) return null; AC = new C({ latencyHint: "interactive" }); }
+  if (AC.state !== "running") AC.resume().catch(() => {});
+  return AC;
+}
+function blip(t, f, v) { const c = AC, o = c.createOscillator(), g = c.createGain(); o.frequency.value = f; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.005); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08); o.connect(g).connect(c.destination); o.start(t); o.stop(t + 0.1); }
+function clack() { // 押したときの拍子木のような音
+  const c = AC; if (!c) return;
+  if (!NOISE) { NOISE = c.createBuffer(1, Math.floor(c.sampleRate * 0.06), c.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3); }
+  const s = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(); s.buffer = NOISE; f.type = "bandpass"; f.frequency.value = 1800; f.Q.value = 2; g.gain.value = 0.9; s.connect(f).connect(g).connect(c.destination); s.start();
+}
+// いま耳に届いている音の時刻（音の時計）。getOutputTimestamp があれば、出力の遅れまで入っている
+function heardNow() {
+  const c = AC;
+  if (c.getOutputTimestamp) { const o = c.getOutputTimestamp(); if (o && o.contextTime > 0 && o.performanceTime > 0) return o.contextTime + (performance.now() - o.performanceTime) / 1000; }
+  return c.currentTime - (c.outputLatency || c.baseLatency || 0);
+}
+const heardAt = (ts) => heardNow() - (performance.now() - ts) / 1000;
+
+// ---- 1小節を遊ぶ ----
+let PLAY = null; // 遊んでいる小節（押したときに使う）
+function slotsHtml(n, mora, pre) { return Array.from({ length: H.BEATS }, (_, i) => `<div class="slot${pre ? " pre" : ""}" id="sl${i}"><span class="k">${pre ? (i < n ? esc(mora[i]) : "休") : "・"}</span><span class="m"></span></div>`).join(""); }
+const MARK = { p: "◎ぴったり", g: "○よい", o: "△おしい" };
+function paintSlots(res, mora, end) {
+  for (let i = 0; i < H.BEATS; i++) {
+    const el = $("sl" + i); if (!el) continue;
+    const g = res.g[i], over = res.extraAt.includes(i);
+    el.classList.remove("hit", "miss", "rest", "over");
+    const k = el.querySelector(".k"), m = el.querySelector(".m");
+    if (g === "p" || g === "g" || g === "o") { el.classList.add("hit"); k.textContent = mora[i]; m.textContent = MARK[g]; }
+    else if (over) { el.classList.add("over"); k.textContent = i < mora.length ? mora[i] : "休"; m.textContent = "✕打ちすぎ"; }
+    else if (end && g === "x") { el.classList.add("miss"); k.textContent = mora[i]; m.textContent = "✕見逃し"; }
+    else if (end && g === "r") { el.classList.add("rest"); k.textContent = "休"; m.textContent = "−"; }
+  }
+}
+function playBar(mora) {
+  const s = load(), n = mora.length, bpm = s.opt.bpm, spb = 60 / bpm;
+  if (HK.auto) { // 検査：音を待たずに判定
+    const beats = Array.from({ length: H.BEATS }, (_, i) => i * spb);
+    const res = H.judge(beats, n, HK.auto(beats, n));
+    paintSlots(res, mora, true); return Promise.resolve(res);
+  }
+  const c = ac();
+  if (!c) { toast("このブラウザでは音が出せません"); return Promise.resolve(H.judge([0, 1, 2, 3, 4, 5, 6, 7], n, [])); }
+  return new Promise((done) => {
+    const t0 = c.currentTime + 0.35 + 4 * spb;
+    for (let i = 4; i >= 1; i--) blip(t0 - i * spb, 1320, 0.35);
+    const beats = Array.from({ length: H.BEATS }, (_, i) => t0 + i * spb);
+    beats.forEach((t) => blip(t, 660, 0.18));
+    const taps = [];
+    PLAY = { beats, taps, n, mora };
+    const pad = $("pad"), cnt = $("count");
+    let last = -9;
+    const tick = () => {
+      if (!PLAY) return;
+      const h = heardNow();
+      if (h < t0 - spb * 0.5) { const k = Math.ceil((t0 - h) / spb); cnt.textContent = k > 1 ? String(k - 1) : "はい"; }
+      else cnt.textContent = "";
+      const cur = Math.floor((h - t0) / spb + 0.5);
+      if (cur !== last) { if (last >= 0 && last < H.BEATS) $("sl" + last).classList.remove("now"); if (cur >= 0 && cur < H.BEATS) $("sl" + cur).classList.add("now"); last = cur; }
+      if (h > beats[H.BEATS - 1] + spb * 0.6) {
+        if (last >= 0 && last < H.BEATS) $("sl" + last).classList.remove("now");
+        const res = H.judge(beats, n, taps); PLAY = null; pad.disabled = true; HK.last = { taps: taps.slice(), beats };
+        paintSlots(res, mora, true); done(res); return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+}
+function onTap(ts) {
+  if (!PLAY || !AC) return;
+  const s = load();
+  PLAY.taps.push(heardAt(ts) - s.opt.off); HK.taps++;
+  clack();
+  const pad = $("pad"); pad.classList.add("hitfx"); setTimeout(() => pad.classList.remove("hitfx"), 90);
+  if (PLAY.n !== undefined) paintSlots(H.judge(PLAY.beats, PLAY.n, PLAY.taps), PLAY.mora, false);
+}
+document.addEventListener("keydown", (e) => {
+  if (!PLAY || e.repeat) return;
+  if (e.key === " " || e.key === "Enter" || e.key === "f" || e.key === "j") { e.preventDefault(); onTap(e.timeStamp); }
+});
+
+// ---- 画面の部品 ----
+const stars = (n, max = 3) => `<span class="stars" aria-label="星${n}つ">${"★".repeat(n)}<span class="off">${"☆".repeat(max - n)}</span></span>`;
+const sym = (n) => ["✕", "△", "○", "◎"][n];
+const footer = () => `<footer><a href="#" id="f-how">遊び方</a><a href="#" id="f-about">このゲームについて</a><a href="#" data-a11y-open>見やすさ</a><a href="#" data-hk>引き継ぎ</a><a href="${FEEDBACK}" target="_blank" rel="noopener">💬 感想を送る</a></footer>`;
+function bind(map) { for (const [id, fn] of Object.entries(map)) { const el = $(id); if (el) el.onclick = (e) => { e.preventDefault(); fn(); }; } const h = $("f-how"); if (h) h.onclick = (e) => { e.preventDefault(); openHow(); }; const a = $("f-about"); if (a) a.onclick = (e) => { e.preventDefault(); about(); }; }
+function openHow() { $("fb2").href = FEEDBACK; const d = $("howto"); if (d.showModal) d.showModal(); else d.setAttribute("open", ""); }
+$("howto-ok").onclick = () => { const d = $("howto"); if (d.close) d.close(); else d.removeAttribute("open"); };
+$("howto").addEventListener("close", () => save((s) => { s.tut = true; }));
+const hdr = (title, sub = "") => `<header><h1>${title}${sub ? `<small>${sub}</small>` : ""}</h1><button class="icon" id="back" aria-label="ホームへ戻る">ホーム</button></header>`;
+function show(html, map = {}) { PLAY = null; app.innerHTML = html; bind(Object.assign({ back: home }, map)); scrollTo(0, 0); const f = app.querySelector("h1,.title"); if (f) { f.setAttribute("tabindex", "-1"); } }
+
+// ---- ホーム ----
+function home() {
+  const s = load(), k = todayKey(), d = s.days[k], rd = s.runs.d && s.runs.d.date === k ? s.runs.d : null, hd = s.hdays[k], re = s.runs.e, late = lateDays(s), t = tally(s);
+  show(`
+    <p class="title">拍<span>うち</span></p>
+    <p class="lead">ことばに手拍子。<br>1拍に1回、音に合わせて押そう。</p>
+    <button class="main" id="go-d">${d ? `今日の結果を見る<small>${d.s.map(sym).join("")}</small>` : rd ? `続きから（${rd.res.length + 1}語目）` : `今日の5語<small>第${dayNo(k)}回</small>`}</button>
+    <button class="main alt" id="go-h">${hd ? "上級：今日の一句（結果を見る）" : "上級：今日の一句<small>5・7・5を3小節で</small>"}</button>
+    <button class="main alt" id="go-e">${re ? `とことんの続きから（${re.streak}語続いている）` : "とことん：好きなだけ"}${s.ebest ? `<small>ベスト ${s.ebest}語続けて</small>` : ""}</button>
+    <div class="row"><button class="sub" id="go-p">練習（何度でも）</button><button class="sub" id="go-book">拍帳 ${t.w}語</button></div>
+    <div class="row"><button class="sub" id="go-cal">カレンダー${late.length ? `（あとから ${late.length}日）` : ""}</button><button class="sub" id="go-ach">実績 ${Object.keys(s.ach).length}/${ACH.length}</button></div>
+    <div class="opts">
+      <div class="seg" role="group" aria-label="テンポ"><span>テンポ</span>${TEMPOS.map(([b, l]) => `<button data-bpm="${b}" aria-pressed="${s.opt.bpm === b}">${l}</button>`).join("")}</div>
+      <div class="seg" role="group" aria-label="下読み"><span>下読み</span><button data-easy="0" aria-pressed="${!s.opt.easy}">なし</button><button data-easy="1" aria-pressed="${!!s.opt.easy}">あり</button></div>
+      <p class="note">下読みありは、拍の区切りが先に見えます（★は2つまで）。</p>
+      <button class="sub" id="go-calib">${s.opt.cal ? `ずれを合わせ直す（いま ${Math.round(s.opt.off * 1000)}ミリ秒）` : "はじめに：音と指のずれを合わせる"}</button>
+    </div>
+    ${footer()}`, {
+    "go-d": () => (d ? result("d", k) : startDaily(k, false)),
+    "go-h": () => (hd ? result("h", k) : startHard(k)),
+    "go-e": startEndless, "go-p": practice, "go-book": book, "go-cal": () => cal(k.slice(0, 7)), "go-ach": achView, "go-calib": calib,
+  });
+  app.querySelectorAll("[data-bpm]").forEach((b) => (b.onclick = () => { save((s2) => { s2.opt.bpm = +b.dataset.bpm; }); home(); }));
+  app.querySelectorAll("[data-easy]").forEach((b) => (b.onclick = () => { save((s2) => { s2.opt.easy = b.dataset.easy === "1"; }); home(); }));
+  if (!s.tut && !$("howto").open) openHow();
+}
+
+// ---- ことばを1つ遊ぶ画面 ----
+// mode: d 今日・l あとから・h 上級・e とことん・p 練習
+function wordScreen({ title, sub, word, reading, mora, dots, lineNo, after, extraTop = "" }) {
+  const s = load(), easy = s.opt.easy;
+  show(`${hdr(title, sub)}
+    ${dots || ""}${extraTop}
+    ${lineNo ? `<p class="lineno">${lineNo}</p>` : ""}
+    <div class="word"><div class="w">${esc(word)}</div>${reading !== word ? `<div class="r">${esc(reading)}</div>` : ""}</div>
+    <p class="count" id="count" aria-hidden="true"></p>
+    <div class="slots" id="slots" aria-label="8拍">${slotsHtml(mora.length, mora, easy)}</div>
+    <button class="pad" id="pad">はじめる<small>押すと「3・2・1・はい」</small></button>
+    <div id="after"></div>`);
+  const pad = $("pad");
+  let started = false;
+  const start = () => {
+    if (started) return; started = true;
+    ac();
+    pad.innerHTML = "タン<small>ここを押す・スペースキーでも</small>";
+    say(`${reading}。3、2、1、はいの後に、1拍に1回押します。`);
+    playBar(mora).then((res) => {
+      if (easy) res.stars = Math.min(res.stars, 2);
+      const tipK = H.KINDS.find((x) => x.id !== "plain" && H.kindsOf(reading).includes(x.id)) || H.KINDS[0];
+      const sp = mora.map((m) => (m.length > 1 || /[っッんンー]/.test(m) ? `<em>${esc(m)}</em>` : esc(m))).join("・");
+      const msg = res.ok ? `打てた！ ${"★".repeat(res.stars) || ""}` : res.extra ? `打ちすぎが${res.extra}回` : `見逃しが${res.g.filter((x) => x === "x").length}拍`;
+      $("after").innerHTML = `<div class="verdict${res.ok ? "" : " lose"}"><div class="hd">${res.ok ? "✓" : "✕"} ${esc(msg)}</div>
+        <div class="sp" aria-label="${esc(mora.join("、"))}、${mora.length}拍">${sp} ＝ ${mora.length}拍</div>
+        <p>${esc(tipK.tip)}</p></div>`;
+      say(`${res.ok ? "打てました" : msg}。${reading}は${mora.length}拍。${tipK.tip}`);
+      pad.disabled = true; pad.innerHTML = "おわり<small>下のボタンでつぎへ</small>";
+      after(res);
+    });
+  };
+  pad.addEventListener("pointerdown", (e) => { if (!started) { e.preventDefault(); start(); return; } e.preventDefault(); onTap(e.timeStamp); });
+  pad.addEventListener("click", () => { if (!started) start(); }); // キーボードで「はじめる」
+  pad.focus({ preventScroll: true });
+}
+const dotsHtml = (n, i) => `<div class="dots" aria-label="${n}語のうち${i + 1}語目">${Array.from({ length: n }, (_, j) => `<i class="${j < i ? "done" : j === i ? "on" : ""}"></i>`).join("")}</div>`;
+function nextBtn(label, fn, extra = "") { const a = $("after"); a.insertAdjacentHTML("beforeend", `<button class="main" id="next">${label}</button>${extra}`); $("next").onclick = fn; $("next").focus({ preventScroll: true }); }
+
+// ---- 今日の5語・あとから ----
+function startDaily(k, late) {
+  const key = late ? "l" : "d";
+  save((s) => { const r = s.runs[key]; if (!r || r.date !== k) s.runs[key] = { date: k, ids: H.daily(k), res: [] }; });
+  dailyStep(k, late);
+}
+function dailyStep(k, late) {
+  const key = late ? "l" : "d", s = load(), r = s.runs[key];
+  if (!r || r.date !== k) return home();
+  const i = r.res.length;
+  if (i >= r.ids.length) return finishDaily(k, late);
+  const w = H.WORDS[r.ids[i]];
+  wordScreen({ title: late ? `あとから ${md(k)}` : "今日の5語", sub: `第${dayNo(k)}回`, word: w.w, reading: w.r, mora: w.m, dots: dotsHtml(r.ids.length, i),
+    after: (res) => {
+      save((s2) => { const r2 = s2.runs[key]; if (r2 && r2.date === k && r2.res.length === i) r2.res.push(res.stars); if (res.ok) keepBest(s2.words, w.id, res.stars); });
+      nextBtn(i + 1 < r.ids.length ? "つぎのことば" : "結果を見る", () => dailyStep(k, late));
+    } });
+}
+function finishDaily(k, late) {
+  let first = false;
+  save((s) => { const key = late ? "l" : "d", r = s.runs[key]; if (!r) return; const book = late ? s.late : s.days; if (!book[k] && !(late && s.days[k])) { book[k] = { s: r.res, ids: r.ids }; first = true; } delete s.runs[key]; });
+  result(late ? "l" : "d", k, first);
+}
+
+// ---- 上級：今日の一句 ----
+function startHard(k) {
+  save((s) => { const r = s.runs.h; if (!r || r.date !== k) s.runs.h = { date: k, id: H.hard(k), res: [] }; });
+  hardStep(k);
+}
+function hardStep(k) {
+  const s = load(), r = s.runs.h; if (!r || r.date !== k) return home();
+  const hk = H.HAIKU[r.id], i = r.res.length;
+  if (i >= 3) { let first = false; save((s2) => { if (!s2.hdays[k]) { s2.hdays[k] = { s: r.res, id: r.id }; first = true; } if (r.res.every((x) => x > 0)) keepBest(s2.haiku, r.id, Math.min(...r.res)); delete s2.runs.h; }); return result("h", k, first); }
+  const L = hk.lines[i];
+  wordScreen({ title: "上級：今日の一句", sub: `${hk.by}`, word: L.w, reading: L.r, mora: L.m, lineNo: `${["上の五", "中の七", "下の五"][i]}（${i + 1}/3）`, dots: dotsHtml(3, i),
+    after: (res) => {
+      save((s2) => { const r2 = s2.runs.h; if (r2 && r2.date === k && r2.res.length === i) r2.res.push(res.stars); });
+      nextBtn(i < 2 ? "つぎの行" : "結果を見る", () => hardStep(k));
+    } });
+}
+
+// ---- とことん ----
+function startEndless() {
+  save((s) => { if (!s.runs.e) s.runs.e = { list: H.endless(), i: 0, streak: 0, best: 0, miss: 0, n: 0 }; });
+  endlessStep();
+}
+function endlessStep() {
+  const s = load(), r = s.runs.e; if (!r) return home();
+  if (r.i >= r.list.length) save((s2) => { const e = s2.runs.e; const prev = e.list[e.list.length - 1]; e.list = H.endless(Math.random, prev); e.i = 0; });
+  const r2 = load().runs.e, w = H.WORDS[r2.list[r2.i]];
+  wordScreen({ title: "とことん", sub: `続けて ${r2.streak}語・ベスト ${Math.max(s.ebest, r2.best)}語・まちがい ${r2.miss}`, word: w.w, reading: w.r, mora: w.m,
+    extraTop: `<button class="sub" id="quit">ここで降りる</button>`,
+    after: (res) => {
+      save((s3) => { const e = s3.runs.e; if (!e) return; e.i++; e.n++; if (res.ok) { e.streak++; e.best = Math.max(e.best, e.streak); keepBest(s3.words, w.id, res.stars); } else { e.streak = 0; e.miss++; } s3.ebest = Math.max(s3.ebest, e.best); });
+      nextBtn("つぎのことば", endlessStep);
+    } });
+  $("quit").onclick = endEndless;
+}
+function endEndless() {
+  const r = load().runs.e; save((s) => { delete s.runs.e; });
+  const s = load(), na = newAch();
+  show(`${hdr("とことん")}
+    <div class="stats"><div><b>${r ? r.n : 0}</b><small>打ったことば</small></div><div><b>${r ? r.best : 0}</b><small>続けて打てた</small></div><div><b>${s.ebest}</b><small>ベスト</small></div></div>
+    ${na.map((a) => `<p class="achnew">${a.ic} 実績「${esc(a.nm)}」</p>`).join("")}
+    <button class="main" id="go-e">もう一度とことん</button>
+    <div class="row"><button class="sub" id="go-book">拍帳を見る</button><button class="sub" id="back2">ホーム</button></div>${footer()}`, { "go-e": startEndless, "go-book": book, back2: home });
+  say(`とことんを終えました。続けて${r ? r.best : 0}語。`);
+}
+
+// ---- 練習（記録は増やさない）----
+function practice(id) {
+  const w = H.WORDS[id !== undefined ? id : Math.floor(Math.random() * H.WORDS.length)];
+  wordScreen({ title: "練習", sub: "記録には数えません", word: w.w, reading: w.r, mora: w.m,
+    after: () => { nextBtn("つぎのことば", () => practice(), `<button class="sub" id="again">もう一度</button>`); $("again").onclick = () => practice(w.id); } });
+}
+
+// ---- 結果 ----
+function result(mode, k, first) {
+  const s = load(), rec = mode === "h" ? s.hdays[k] : mode === "l" ? s.late[k] : s.days[k];
+  if (!rec) return home();
+  const total = rec.s.reduce((a, b) => a + b, 0), max = rec.s.length * 3, late = mode === "l";
+  const na = newAch();
+  const text = mode === "h" ? `拍うち 上級 第${dayNo(k)}回 ${md(k)}\n${rec.s.map(sym).join("")} ★${total}/${max}` : `拍うち 第${dayNo(k)}回 ${md(k)}\n${rec.s.map(sym).join("")} ★${total}/${max}`;
+  const withUrl = text + "\n#拍うち " + URL0;
+  const showKofi = first && !late && !s.kofi[k + mode];
+  if (showKofi) save((s2) => { s2.kofi[k + mode] = 1; });
+  const items = mode === "h" ? (() => { const hk = H.HAIKU[rec.id]; return `<div class="haiku">${hk.lines.map((L, i) => `${sym(rec.s[i])} ${esc(L.w)}`).join("<br>")}<br><small>${esc(hk.by)}</small></div>`; })()
+    : `<div class="rlist">${rec.ids.map((id, i) => { const w = H.WORDS[id]; return `<div><span aria-hidden="true">${sym(rec.s[i])}</span><span class="w"><b>${esc(w.w)}</b>${esc(w.m.join("・"))}（${w.m.length}拍）</span>${stars(rec.s[i])}</div>`; }).join("")}</div>`;
+  show(`${hdr(mode === "h" ? "上級：今日の一句" : late ? `あとから ${md(k)}` : "今日の5語", `第${dayNo(k)}回 ${md(k)}`)}
+    <p class="calib">★ ${total} / ${max}</p>
+    ${items}
+    ${na.map((a) => `<p class="achnew">${a.ic} 実績「${esc(a.nm)}」</p>`).join("")}
+    ${late ? `<p class="note">あとから遊んだ日は、カレンダーに ↺ で残ります（今日の記録には数えません）。</p>` : `<div class="share">${esc(text)}</div><div class="shares"><button id="share">結果をシェア</button><a id="toX" target="_blank" rel="noopener">X に投稿</a></div>`}
+    <button class="main alt" id="go-e">続けて遊ぶ：とことん</button>
+    ${mode === "d" && !s.hdays[k] ? `<button class="main alt" id="go-h">上級：今日の一句に挑む</button>` : ""}
+    <div class="row"><button class="sub" id="go-p">練習する</button><button class="sub" id="go-book">拍帳を見る</button></div>
+    ${showKofi ? `<p class="note kofi">楽しめたら、<a href="https://ko-fi.com/satouaaaaa" target="_blank" rel="noopener">Ko-fi でコーヒー1杯の応援</a>をもらえると、新しいゲームづくりの励みになります（任意・遊ぶのはずっと無料）。</p>` : ""}
+    ${footer()}`, { "go-e": startEndless, "go-h": () => startHard(k), "go-p": practice, "go-book": book });
+  if ($("toX")) { $("toX").href = "https://twitter.com/intent/tweet?text=" + encodeURIComponent(withUrl); $("share").onclick = () => { if (navigator.share) navigator.share({ text: withUrl }).catch(() => {}); else copy(withUrl); }; }
+  say(`結果。星${total}つ、${max}のうち。`);
+}
+function copy(t) { (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast("コピーしました"), () => toast("コピーできませんでした")); }
+
+// ---- 拍帳 ----
+function book(kind) {
+  const s = load(), got = new Set(Object.keys(s.words).filter((id) => s.words[id] >= 1).map(Number));
+  if (kind) {
+    const K = H.KINDS.find((x) => x.id === kind), ws = H.WORDS.filter((w) => w.k.includes(kind) && got.has(w.id));
+    return show(`${hdr("拍帳", K.name)}<p class="lead">${esc(K.tip)}</p>
+      <div class="wlist">${ws.length ? ws.map((w) => `<span>${esc(w.w)}：${esc(w.m.join("・"))}</span>`).join("") : "<p class=\"note\">まだありません。</p>"}</div>
+      <button class="sub" id="bk">拍帳へ戻る</button>`, { bk: () => book() });
+  }
+  const hs = H.HAIKU.filter((h) => s.haiku[h.id] >= 1);
+  show(`${hdr("拍帳", `打てたことば ${got.size}/${H.WORDS.length}`)}
+    <div class="book">${H.KINDS.map((K) => { const all = H.WORDS.filter((w) => w.k.includes(K.id)), n = all.filter((w) => got.has(w.id)).length; return `<button data-kind="${K.id}"><span class="mk" aria-hidden="true">${K.mk}</span><span>${esc(K.name)}<small>${esc(K.tip)}</small></span><span class="ct">${n}/${all.length}</span></button>`; }).join("")}</div>
+    <h2 class="lineno">一句帳 ${hs.length}/${H.HAIKU.length}</h2>
+    ${hs.map((h) => `<div class="haiku">${h.lines.map((L) => esc(L.w)).join("　")}<br><small>${esc(h.by)}</small></div>`).join("") || `<p class="note">上級で打てた俳句が集まります。</p>`}
+    ${footer()}`);
+  app.querySelectorAll("[data-kind]").forEach((b) => (b.onclick = () => book(b.dataset.kind)));
+}
+
+// ---- 実績 ----
+function achView() {
+  const s = load(), t = tally(s);
+  show(`${hdr("実績", `${Object.keys(s.ach).length}/${ACH.length}`)}<div class="alist">${ACH.map(([id, ic, nm, cd, f]) => { const [a, b] = f(t), ok = a >= b; return `<div class="ach${ok ? " got" : ""}"><span class="ic" aria-hidden="true">${ok ? ic : "🔒"}</span><b>${ok ? "✓ " : ""}${esc(nm)}</b><span class="pg">${Math.min(a, b)}/${b}</span><small>${esc(cd)}</small><span class="bar"><i style="width:${Math.min(100, (a / b) * 100)}%"></i></span></div>`; }).join("")}</div>${footer()}`);
+}
+
+// ---- カレンダー ----
+function cal(ym) {
+  const s = load(), k = todayKey(), late = new Set(lateDays(s));
+  const first = new Date(ym + "-01T00:00:00Z"), dow = first.getUTCDay(), days = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  const prev = addDay(ym + "-01", -1).slice(0, 7), next = addDay(ym + "-" + String(days).padStart(2, "0"), 1).slice(0, 7);
+  const cells = [];
+  for (let i = 0; i < dow; i++) cells.push(`<span class="c off"></span>`);
+  for (let d = 1; d <= days; d++) {
+    const key = `${ym}-${String(d).padStart(2, "0")}`, p = s.days[key], l = s.late[key], h = s.hdays[key];
+    const cls = p ? "p" : l ? "late" : late.has(key) ? "miss" : "";
+    const lab = p ? `★${p.s.reduce((a, b) => a + b, 0)}` : l ? "↺" : late.has(key) ? "あとから" : "";
+    cells.push(late.has(key) ? `<button class="c miss${key === k ? " today" : ""}" data-late="${key}" aria-label="${d}日 あとから遊ぶ">${d}<i>${lab}</i></button>` : `<span class="c ${cls}${key === k ? " today" : ""}">${d}<i>${lab}${h ? " 句" : ""}</i></span>`);
+  }
+  const t = tally(s);
+  show(`${hdr("カレンダー", t.days ? `遊んだ日 合わせて${t.days}日` : "")}
+    <div class="calnav"><button class="sub" id="pv" aria-label="前の月"${prev < EPOCH.slice(0, 7) ? " disabled" : ""}>◀</button><b>${+ym.slice(0, 4)}年${+ym.slice(5)}月</b><button class="sub" id="nx" aria-label="次の月"${next > k.slice(0, 7) ? " disabled" : ""}>▶</button></div>
+    <div class="cal">${"日月火水木金土".split("").map((w) => `<span class="wd">${w}</span>`).join("")}${cells.join("")}</div>
+    <div class="legend"><span>★数＝今日の5語</span><span>↺＝あとから</span><span>句＝上級</span><span>あとから＝押すと遊べる（${LATE}日前まで）</span></div>
+    ${footer()}`, { pv: () => cal(prev), nx: () => cal(next) });
+  app.querySelectorAll("[data-late]").forEach((b) => (b.onclick = () => startDaily(b.dataset.late, true)));
+}
+
+// ---- ずれを合わせる ----
+function calib() {
+  const s = load();
+  show(`${hdr("ずれを合わせる")}
+    <p class="lead">「3・2・1・はい」のあと、音が8回鳴ります。<br>音に合わせて8回押してください。</p>
+    <p class="calib" id="cv">いま ${Math.round(s.opt.off * 1000)}ミリ秒</p>
+    <p class="count" id="count" aria-hidden="true"></p>
+    <div class="slots" id="slots" aria-label="8拍">${slotsHtml(8, Array(8).fill("拍"), false)}</div>
+    <button class="pad" id="pad">はじめる<small>押すと「3・2・1・はい」</small></button>
+    <div class="row"><button class="sub" id="m10">−10ミリ秒</button><button class="sub" id="p10">＋10ミリ秒</button></div>
+    <p class="note">打つたびに「遅い」と出るなら＋、「早い」なら−。0にもどすときは何回か押して合わせます。</p>`, {
+    m10: () => { save((s2) => { s2.opt.off = Math.max(-0.3, Math.round((s2.opt.off - 0.01) * 1000) / 1000); }); $("cv").textContent = `いま ${Math.round(load().opt.off * 1000)}ミリ秒`; },
+    p10: () => { save((s2) => { s2.opt.off = Math.min(0.3, Math.round((s2.opt.off + 0.01) * 1000) / 1000); }); $("cv").textContent = `いま ${Math.round(load().opt.off * 1000)}ミリ秒`; },
+  });
+  const pad = $("pad"); let started = false;
+  const start = () => {
+    if (started) return; started = true; ac(); pad.innerHTML = "タン<small>音に合わせて</small>";
+    const off0 = load().opt.off;
+    const run = HK.auto ? Promise.resolve(HK.auto(Array.from({ length: 8 }, (_, i) => i * (60 / load().opt.bpm)), 8)).then((taps) => ({ taps, beats: Array.from({ length: 8 }, (_, i) => i * (60 / load().opt.bpm)) }))
+      : playBar(Array(8).fill("拍")).then(() => HK.last);
+    run.then(({ taps, beats }) => {
+      const spb = beats[1] - beats[0], errs = [];
+      for (const t of taps) { const raw = t + (HK.auto ? 0 : off0); let bi = 0; beats.forEach((b, i) => { if (Math.abs(raw - b) < Math.abs(raw - beats[bi])) bi = i; }); const e = raw - beats[bi]; if (Math.abs(e) < spb / 2) errs.push(e); }
+      if (errs.length < 5) { $("cv").textContent = "押した回数が少なかったので、もう一度"; say("押した回数が少なかったので、もう一度"); started = false; pad.disabled = false; pad.innerHTML = "もう一度<small>押すと「3・2・1・はい」</small>"; return; }
+      errs.sort((a, b) => a - b);
+      const med = errs[Math.floor(errs.length / 2)], off = Math.max(-0.3, Math.min(0.3, Math.round(med * 1000) / 1000));
+      save((s2) => { s2.opt.off = off; s2.opt.cal = true; });
+      const msg = `合わせました：${Math.round(off * 1000)}ミリ秒（${off >= 0 ? "音より遅く押しがち" : "音より早く押しがち"}だったぶんを直します）`;
+      $("cv").textContent = msg; say(msg);
+      started = false; pad.disabled = false; pad.innerHTML = "もう一度<small>押すと「3・2・1・はい」</small>";
+      const na = newAch(); if (na.length) toast(`${na[0].ic} 実績「${na[0].nm}」`);
+    });
+  };
+  pad.addEventListener("pointerdown", (e) => { e.preventDefault(); if (!started) start(); else onTap(e.timeStamp); });
+  pad.addEventListener("click", () => { if (!started) start(); });
+}
+
+// ---- このゲームについて ----
+function about() {
+  show(`${hdr("このゲームについて")}<div class="about">
+    <h3>何が身につく？</h3><p>日本語の「拍（はく）」の数え方です。小さい「っ」「ん」、のばす「ー」も1拍。「きゃ」「ティ」のように小さい字は前の字と合わせて1拍。俳句の5・7・5も拍で数えます。</p>
+    <h3>しくみと出典</h3><ul>
+      <li>拍の数え方：<a href="https://aiueo.cc/pages_v2/ja/pronounce/web/pw301.php" target="_blank" rel="noopener">おにぎり君の日本語発音教室「拍とリズム」</a></li>
+      <li>音の時刻は Web Audio の時計で決めます：<a href="https://web.dev/articles/audio-scheduling" target="_blank" rel="noopener">web.dev「A tale of two clocks」</a></li>
+      <li>押した時刻は、いま聞こえている音の時刻に直して判定します：<a href="https://developer.mozilla.org/docs/Web/API/AudioContext/getOutputTimestamp" target="_blank" rel="noopener">MDN getOutputTimestamp</a></li>
+      <li>ずれを合わせる画面の考え方：<a href="https://rhythmquestgame.com/devlog/10.html" target="_blank" rel="noopener">Rhythm Quest 開発記 #10</a></li>
+      <li>リズムの練習と、ことばの音に気づく力の研究：<a href="https://pubmed.ncbi.nlm.nih.gov/26407242/" target="_blank" rel="noopener">Flaugnacco ほか 2015</a></li>
+    </ul>
+    <h3>判定</h3><p>◎ぴったり ±70ミリ秒・○よい ±120ミリ秒・△おしい ±180ミリ秒。ことばの拍を全部押せて、休みで押さなければ「打てた」。</p>
+    <h3>俳句</h3><p>松尾芭蕉・与謝蕪村・小林一茶・加賀千代女・正岡子規・高浜虚子の句（どれも著作権の切れたもの）。どの行もちょうど5・7・5拍の句だけを選んでいます。</p>
+    <h3>記録</h3><p>記録はこの端末のブラウザの中だけに置き、外へは何も送りません。音もこのページの中で作っています。</p>
+  </div>${footer()}`);
+}
+
+home();
+if ("serviceWorker" in navigator && location.protocol === "https:" && /github\.io$/.test(location.hostname)) navigator.serviceWorker.register("sw.js").catch(() => {});
+</script>
+</body>
+</html>

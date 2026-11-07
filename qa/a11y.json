@@ -1,0 +1,9 @@
+{
+  "screens": [
+    { "name": "今日の5語", "click": ["#go-d"] },
+    { "name": "拍帳", "click": ["#go-book"] },
+    { "name": "実績", "click": ["#go-ach"] },
+    { "name": "ずれを合わせる", "click": ["#go-calib"] },
+    { "name": "このゲームについて", "click": ["#f-about"] }
+  ]
+}
