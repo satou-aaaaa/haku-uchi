@@ -115,6 +115,12 @@ const noOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth 
 try {
   const p = await newPage();
   check("はじめて開くと遊び方が出る", await p.locator("#howto[open]").count() === 1);
+  { const c = await browser.newContext(); const r = await c.newPage(); await r.goto(url); await r.waitForTimeout(200); let again = 0;
+    for (let i = 0; i < 10; i++) { await r.evaluate(() => localStorage.clear()); await r.reload(); await r.waitForTimeout(200); await r.keyboard.press("Escape"); await r.reload(); await r.waitForTimeout(200); again += await r.locator("#howto[open]").count(); }
+    check("遊び方を Esc で閉じてすぐ読み直しても出ない（10回）", again === 0);
+    await r.evaluate(() => localStorage.clear()); await r.reload(); await r.waitForTimeout(200);
+    check("「わかった」を押したその場で「見た」が残る", await r.locator("#howto-ok").evaluate((b) => { b.click(); return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); }));
+    await r.reload(); await r.waitForTimeout(200); check("遊び方を「わかった」で閉じてすぐ読み直しても出ない（その場で残す）", await r.locator("#howto[open]").count() === 0); await c.close(); }
   await p.keyboard.press("Escape"); await p.waitForTimeout(100); await p.reload(); await p.waitForTimeout(150);
   check("遊び方は一度閉じたら開き直しても出ない", await p.locator("#howto[open]").count() === 0);
   check("ホーム：今日の5語・上級・とことん・練習・拍帳・カレンダー・実績・テンポ・下読み・ずれを合わせる", ["#go-d", "#go-h", "#go-e", "#go-p", "#go-book", "#go-cal", "#go-ach", "#go-calib", "[data-bpm]", "[data-easy]"].every((s) => html.includes(s.replace(/[#\[\]]/g, "")) ) && await p.locator("#go-d,#go-h,#go-e,#go-p,#go-book,#go-cal,#go-ach,#go-calib").count() === 8 && await p.locator("[data-bpm]").count() === 3);
@@ -251,21 +257,6 @@ try {
   check("本当に押す：スペースキー・タップ・click だけの操作を1回ずつ数え、小節の終わりに判定が出る", okV && hk.taps === 5 && hk.last === 5, JSON.stringify(hk));
   check("遊ぶ画面はスマホ幅（390px）で横にはみ出さない", await noOverflow(r));
   await r.context().close();
-
-  // 遊び方の「見た」：わかったを押したその場・Esc で閉じたその場で残る（閉じた直後に読み直してもまた出ない）
-  const hw = await newPage(390);
-  await hw.waitForSelector("#howto[open]"); await hw.click("#howto-ok");
-  check("遊び方：「わかった」を押したその場で「見た」が残る", (await mem(hw)).tut === true);
-  await hw.context().close();
-  let escOk = true;
-  for (let i = 0; i < 10 && escOk; i++) {   // 毎回まっさらな端末で：Esc で閉じて、すぐ開き直す
-    const e = await newPage(390);
-    await e.waitForSelector("#howto[open]"); await e.keyboard.press("Escape");
-    await e.reload(); await e.waitForTimeout(100);
-    if (await e.locator("#howto[open]").count()) escOk = false;
-    await e.context().close();
-  }
-  check("遊び方：Esc で閉じてすぐ読み直しても（10回）また出ない", escOk);
 
   // 幅320px
   const n = await newPage(320);
