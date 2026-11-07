@@ -3,7 +3,7 @@
 #   使い方: bash scripts/setup.sh   （Windows は Git Bash で）
 # Claude Code のクラウドセッションでは .claude/settings.json の SessionStart フックが自動で呼ぶ。
 # CI の Setup check（共通部品）が、まっさらな環境でこれが通るかを確かめる。
-# ひな形: satou-aaaaa/shared-workflows の template/scripts/setup.sh。<> の部分を埋め、要らない節は消す。
+# ひな形: satou-aaaaa/shared-workflows の template/scripts/setup.sh。（Python の節は使わないので消した）
 # ひな形の版: 4（上げたら写しの版も上げる。scripts/drift-check.mjs が古い写しを週次まとめに出す）
 #   2: 依存は毎回 npm ci・ブラウザが無ければ止める・このシェルで要る操作（nvm use・export）を最後に出す（shared-workflows incidents/2026-11-03-setup-false-ready.md）
 #   3: nvm.sh を --no-use で読む（.nvmrc の版が入っていないと、読んだだけで何も言わずに止まっていた。incidents/2026-11-04-setup-nvm-silent-stop.md）
@@ -21,7 +21,7 @@ session_env() {
   if [ -n "${CLAUDE_ENV_FILE:-}" ]; then echo "export $1" >> "$CLAUDE_ENV_FILE"; else todo+=("export $1"); fi
 }
 
-npm_dir=<package.json のあるフォルダ。例: . や qa>
+npm_dir=qa
 
 # --- Node.js（版は .nvmrc。nvm・fnm・mise・Volta などはこのファイルを読む）---
 want=$(tr -dc '0-9' < .nvmrc)
@@ -60,15 +60,7 @@ else
   (cd "$npm_dir" && npx playwright install chromium)
 fi
 
-# --- Python（版は .python-version。pyenv・uv・mise などはこのファイルを読む）---
-py=$(command -v python3 || command -v python || command -v py || true)
-[ -n "$py" ] || fail "Python $(cat .python-version) が要る（https://www.python.org/ ）"
-"$py" -m venv .venv
-if [ -x .venv/bin/python ]; then vbin=.venv/bin; else vbin=.venv/Scripts; fi   # Windows は Scripts
-"$vbin/python" -m pip install -q -r requirements.txt
-if [ -n "${CLAUDE_ENV_FILE:-}" ]; then session_env "PATH=\"$PWD/$vbin:\$PATH\""; else todo+=(". $vbin/activate"); fi
-
-next="<push する前の確認コマンド>"
+next="node qa/run.mjs"
 if [ ${#todo[@]} -gt 0 ]; then
   echo "△ 準備はできた。ただし、このシェルで先に次を打つ（打たないと古い Node や別のブラウザで動く）:"
   printf '    %s\n' "${todo[@]}"
