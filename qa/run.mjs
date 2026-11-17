@@ -270,6 +270,17 @@ try {
   await n.context().close();
 } catch (e) { check("ブラウザでの検査が最後まで動く", false, e.stack.split("\n").slice(0, 3).join(" ")); }
 
+// 直した不具合がもどっていないか（保存できないときの帯・知らせ・ヒント・とことん・ホームの題）
+try {
+  { // 知らせ（.toast）は下のボタンを押すじゃまをしない
+    const pt = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    await pt.goto(url);
+    check("知らせ（.toast）の pointer-events が none（出ているあいだも下のボタンを押せる）", (await pt.evaluate(() => { const d = document.createElement("div"); d.className = "toast"; d.textContent = "x"; document.body.appendChild(d); const v = getComputedStyle(d).pointerEvents; d.remove(); return v; })) === "none");
+    await pt.close(); }
+} catch (e) {
+  check("直した不具合の検査が最後まで動く", false, e.message.split("\n")[0]);
+}
+
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
   const sample = { "haku-v1": JSON.stringify({ v: 1, tut: true, t: 1, days: { "2026-11-07": { s: [3, 2, 3, 1, 0], ids: [10, 20, 30, 40, 50] } }, late: {}, hdays: {}, words: { 10: 3, 20: 2, 30: 3, 40: 1 }, haiku: {}, ebest: 7, ach: { first: "2026-11-07" }, kofi: {}, runs: {}, opt: { bpm: 72, off: 0.04, easy: false, cal: true } }) };
