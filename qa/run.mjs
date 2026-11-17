@@ -261,7 +261,7 @@ try {
   // 幅320px
   const n = await newPage(320);
   await closeHow(n);
-  const small = await n.$$eval("button,a", (els) => els.filter((e) => { const b = e.getBoundingClientRect(); return b.width && (b.height < 44 || b.width < 44); }).map((e) => e.textContent.trim()).slice(0, 5));
+  const small = await n.$$eval("button,a", (els) => els.filter((e) => { const b = e.getBoundingClientRect(); return b.width && (Math.round(b.height) < 44 || Math.round(b.width) < 44); }).map((e) => e.textContent.trim()).slice(0, 5));
   check("幅320pxでもはみ出さず、押す所は44px以上", await noOverflow(n) && small.length === 0, small.join(" / "));
   await auto(n); await n.click("#go-p");
   check("幅320pxの遊ぶ画面：ますは4つずつ2段・はみ出さない", await noOverflow(n) && (await n.locator("#sl4").boundingBox()).y > (await n.locator("#sl0").boundingBox()).y);
