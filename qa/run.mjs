@@ -13,6 +13,7 @@ import { checkTransfer } from "./transfer-check.mjs";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const results = [];
 const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: String(detail).slice(0, 400) });
+const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.locator("#core-coach").count()) { await q.evaluate(() => Core.coach.leave()); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const H = createRequire(import.meta.url)(path.join(root, "haku.js"));
 const html = readFileSync(path.join(root, "index.html"), "utf8");
 
@@ -105,7 +106,7 @@ async function newPage(w = 390, q = "?qa=1") {
   await p.goto(url + q); await p.waitForTimeout(150);
   return p;
 }
-const closeHow = async (p) => { if (await p.locator("#howto[open]").count()) await p.click("#howto-ok"); };
+const closeHow = async (p) => { await firstClose(p); };
 const mem = (p) => p.evaluate(() => JSON.parse(localStorage.getItem("haku-v1") || "{}"));
 // 押した時刻をまねる：拍の時刻に err 秒ずらす（miss の拍は押さない、extra の拍も押す）
 const auto = (p, { err = 0, miss = [], extra = [] } = {}) => p.evaluate(({ err, miss, extra }) => { window.__hk.auto = (beats, n) => [...beats.slice(0, n).map((t, i) => (miss.includes(i) ? null : t + err)).filter((x) => x !== null), ...extra.map((i) => beats[i])]; }, { err, miss, extra });
@@ -114,12 +115,12 @@ const noOverflow = (p) => p.evaluate(() => document.documentElement.scrollWidth 
 
 try {
   const p = await newPage();
-  check("はじめて開くと遊び方が出る", await p.locator("#howto[open]").count() === 1);
+  check("はじめて開くと遊び方が出る", await p.locator("#core-coach").count() === 1);
   { const c = await browser.newContext(); const r = await c.newPage(); await r.goto(url); await r.waitForTimeout(200); let again = 0;
     for (let i = 0; i < 10; i++) { await r.evaluate(() => localStorage.clear()); await r.reload(); await r.waitForTimeout(200); await r.keyboard.press("Escape"); await r.reload(); await r.waitForTimeout(200); again += await r.locator("#howto[open]").count(); }
     check("遊び方を Esc で閉じてすぐ読み直しても出ない（10回）", again === 0);
     await r.evaluate(() => localStorage.clear()); await r.reload(); await r.waitForTimeout(200);
-    check("「わかった」を押したその場で「見た」が残る", await r.locator("#howto-ok").evaluate((b) => { b.click(); return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); }));
+    check("はじめての練習が始まったその場で「見た」が残る", await r.evaluate(() => { return Object.keys(localStorage).some((k) => { try { return JSON.parse(localStorage.getItem(k)).tut === true; } catch { return false; } }); })); await firstClose(r);
     await r.reload(); await r.waitForTimeout(200); check("遊び方を「わかった」で閉じてすぐ読み直しても出ない（その場で残す）", await r.locator("#howto[open]").count() === 0); await c.close(); }
   await p.keyboard.press("Escape"); await p.waitForTimeout(100); await p.reload(); await p.waitForTimeout(150);
   check("遊び方は一度閉じたら開き直しても出ない", await p.locator("#howto[open]").count() === 0);
@@ -284,7 +285,7 @@ try {
 // 引き継ぎコード（shared-workflows template/qa/transfer-check.mjs）
 try {
   const sample = { "haku-v1": JSON.stringify({ v: 1, tut: true, t: 1, days: { "2026-11-07": { s: [3, 2, 3, 1, 0], ids: [10, 20, 30, 40, 50] } }, late: {}, hdays: {}, words: { 10: 3, 20: 2, 30: 3, 40: 1 }, haiku: {}, ebest: 7, ach: { first: "2026-11-07" }, kofi: {}, runs: {}, opt: { bpm: 72, off: 0.04, easy: false, cal: true } }) };
-  await checkTransfer({ browser, url, game: "haku-uchi", sample, check, open: async (pg) => { if (await pg.locator("#howto[open]").count()) await pg.click("#howto-ok"); } });
+  await checkTransfer({ browser, url, game: "haku-uchi", sample, check, open: async (pg) => { await firstClose(pg); } });
 } catch (e) { check("引き継ぎの検査が最後まで動く", false, e.message.split("\n")[0]); }
 await browser.close();
 server.close();
