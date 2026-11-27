@@ -16,6 +16,8 @@ const check = (name, ok, detail = "") => results.push({ name, ok: !!ok, detail: 
 const firstClose = async (q) => { if (await q.locator("#howto[open]").count()) await q.click("#howto-ok"); if (await q.evaluate(() => !!(window.Core && Core.coach && Core.coach.active()))) { await q.evaluate(() => { Core.coach.leave(); scrollTo(0, 0); }); await q.waitForTimeout(100); } }; // はじめての練習の吹き出しをやめてホームへ（sync-template の migrateFirstQa が足した）
 const H = createRequire(import.meta.url)(path.join(root, "haku.js"));
 const html = readFileSync(path.join(root, "index.html"), "utf8");
+// ひな形の写し（<!-- 名前:begin〜end -->）はゲームの言葉ではないので外し、Core.kofi・Core.KOFI は写す前の形にもどして見る（shared-workflows の sync-template が足した）
+const gameOwn = (t) => t.replace(/<!-- ([a-z0-9-]+):begin[\s\S]*?<!-- \1:end -->/g, "").split("${Core.KOFI}").join("https://ko-fi.com/satouaaaaa").replace(/Core\.kofi\(("(?:[^"\\]|\\.)*"), ("(?:[^"\\]|\\.)*")\)/g, (m, a, b) => "`<p class=\"note kofi\">" + JSON.parse(a) + "、<a href=\"https://ko-fi.com/satouaaaaa\" target=\"_blank\" rel=\"noopener\">Ko-fi でコーヒー1杯の応援</a>をもらえると、" + JSON.parse(b) + "の励みになります（任意・遊ぶのはずっと無料）。</p>`");
 
 // ---- 1. 拍の数え方とデータ（ブラウザを使わない）----
 {
@@ -68,7 +70,7 @@ const html = readFileSync(path.join(root, "index.html"), "utf8");
 
 // ---- 2. ファイル ----
 check("画面の文字に ${ を書いていない（'…' の中の式がそのまま出る）", !/'[^'\n]*\$\{[^'\n]*'/.test(html.replace(/`[^`]*`/g, "")));
-check("チケット・回数制限・🔒で開くモードが無い", !/🎫|チケット|(?:と|たら)開く|🔒 [^"<]/.test(html));
+check("チケット・回数制限・🔒で開くモードが無い", !/🎫|チケット|(?:と|たら)開く|🔒 [^"<]/.test(gameOwn(html)));
 check("外へ通信しない（CSP の connect-src は self だけ・外のスクリプトなし）", /connect-src 'self';/.test(html) && !/<script[^>]+src="https?:/.test(html));
 check("見やすさの設定（template/a11y の写し）と #live（role=status）がある", html.includes("<!-- a11y:begin") && html.includes("<!-- a11y:end -->") && /id="live" role="status"/.test(html));
 check("引き継ぎの部品：transfer.js を data-keys に記録のキーだけ書いて読む", /<script src="transfer.js" data-game="haku-uchi" data-keys="haku-v1"><\/script>/.test(html) && existsSync(path.join(root, "transfer.js")));
